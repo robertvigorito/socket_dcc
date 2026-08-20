@@ -18,9 +18,20 @@
 
 ## Production install
 
-1. Package the extension into a `.vsix` file with your preferred VS Code packaging tool.
-2. In VS Code, choose **Extensions → Install from VSIX...**
-3. Select the generated `.vsix` file.
+1. From the `vscode-extension/` folder, install the VS Code packaging tool:
+
+   ```bash
+   npm install -g @vscode/vsce
+   ```
+
+2. Package the extension into a `.vsix` file:
+
+   ```bash
+   vsce package
+   ```
+
+3. In VS Code, choose **Extensions → Install from VSIX...**
+4. Select the generated `.vsix` file.
 
 ## Configure the extension
 
