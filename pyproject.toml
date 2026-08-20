@@ -7,7 +7,11 @@ authors = [
     { name = "rvigorito", email = "rvigorito@d2.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "clypi>=1.9.0",
+    "pyside6>=6.11.1",
+    "qt-py>=2.0.5",
+]
 
 [project.scripts]
 socket-dcc = "socket_dcc:main"
