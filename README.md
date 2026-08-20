@@ -42,3 +42,6 @@ The panel also shows recently executed files.
 
 Those values are stored in VS Code settings under `socketDcc.*` and are restored
 after VS Code reloads.
+
+See [`vscode-extension/INSTALL.md`](vscode-extension/INSTALL.md) for install
+and setup instructions.
