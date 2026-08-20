@@ -27,11 +27,15 @@ def _save_previous_file(state_path: Path, file_path: Path) -> None:
 
 
 @app.callback()
-def main(ctx: typer.Context) -> None:
+def root(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is None:
         from .gui import main as run_gui
 
         run_gui()
+
+
+def main() -> None:
+    app()
 
 
 @app.command()
@@ -61,19 +65,35 @@ def send(
     else:
         raise typer.BadParameter("Provide a file path or pass --previous.")
 
+    file_path = file_path.resolve()
     if not file_path.exists():
         raise typer.BadParameter(f"File not found: {file_path}")
 
     code = file_path.read_text(encoding="utf-8")
     response = send_code(host, port, token, code)
 
-    if not previous:
-        _save_previous_file(state_path, file_path)
-
     if response.output:
         typer.echo(response.output)
 
     if response.ok:
+        if not previous:
+            _save_previous_file(state_path, file_path)
         return
 
     raise typer.Exit(code=1)
+
+
+@app.command()
+def save(
+    file: Path = typer.Argument(..., help="Python file to save for later runs."),
+) -> None:
+    state_path = _state_path()
+    file_path = file.resolve()
+    if not file_path.exists():
+        raise typer.BadParameter(f"File not found: {file_path}")
+    _save_previous_file(state_path, file_path)
+    typer.echo(f"Saved {file_path}")
+
+
+if __name__ == "__main__":
+    main()

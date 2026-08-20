@@ -6,4 +6,34 @@ Run the desktop app:
 socket-dcc
 ```
 
-The interface starts a local socket server and lets you send Python code to it for execution.
+This opens the GUI; the same command also exposes Typer subcommands for sending and saving Python files.
+
+## Command line
+
+Send a Python file to the running socket server:
+
+```bash
+socket-dcc send path/to/script.py --token YOUR_TOKEN
+```
+
+Run the previously saved file instead:
+
+```bash
+socket-dcc send --previous --token YOUR_TOKEN
+```
+
+You can also save a file path without sending it:
+
+```bash
+socket-dcc save path/to/script.py
+```
+
+## VS Code extension
+
+The `vscode-extension/` folder contains a simple extension with these commands:
+
+- `socket-dcc: Send Active Python File`
+- `socket-dcc: Save Active Python File`
+- `socket-dcc: Run Saved Python File`
+
+Set the socket host, port, token, and saved file path in VS Code settings under `socketDcc.*`.

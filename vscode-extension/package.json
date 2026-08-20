@@ -1,0 +1,61 @@
+{
+  "name": "socket-dcc-vscode",
+  "displayName": "socket-dcc",
+  "description": "Send Python files from VS Code to a socket-dcc server.",
+  "version": "0.1.0",
+  "publisher": "rvigorito",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:socketDcc.sendActiveFile",
+    "onCommand:socketDcc.saveActiveFile",
+    "onCommand:socketDcc.runSavedFile"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "socketDcc.sendActiveFile",
+        "title": "socket-dcc: Send Active Python File"
+      },
+      {
+        "command": "socketDcc.saveActiveFile",
+        "title": "socket-dcc: Save Active Python File"
+      },
+      {
+        "command": "socketDcc.runSavedFile",
+        "title": "socket-dcc: Run Saved Python File"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "socket-dcc",
+      "properties": {
+        "socketDcc.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host running the socket-dcc GUI/server."
+        },
+        "socketDcc.port": {
+          "type": "number",
+          "default": 5050,
+          "description": "Port used by the socket-dcc GUI/server."
+        },
+        "socketDcc.token": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication token shown in the socket-dcc GUI."
+        },
+        "socketDcc.savedFile": {
+          "type": "string",
+          "default": "",
+          "description": "Previously saved Python file that can be run later."
+        }
+      }
+    }
+  }
+}
