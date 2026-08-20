@@ -1,2 +1,4 @@
 def main() -> None:
-    print("Hello from socket-dcc!")
+    from .gui import main as run
+
+    run()
