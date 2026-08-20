@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import socket
 import sys
 import threading
 
@@ -20,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
+from .client import send_code
 from .server import SocketExecutionServer
 
 
@@ -115,30 +115,16 @@ class MainWindow(QMainWindow):
 
     def _send_command(self, host: str, port: int, token: str, code: str) -> None:
         try:
-            with socket.create_connection((host, port), timeout=3) as sock:
-                payload = json.dumps({"code": code, "token": token}) + "\n"
-                sock.sendall(payload.encode("utf-8"))
-                with sock.makefile("r", encoding="utf-8") as stream:
-                    response = stream.readline()
+            response = send_code(host, port, token, code)
         except OSError as exc:
             self.log_requested.emit(f"Socket error: {exc}")
             return
 
-        if not response:
-            self.log_requested.emit("No response from server.")
-            return
-
-        try:
-            data = json.loads(response)
-        except json.JSONDecodeError as exc:
-            self.log_requested.emit(f"Invalid server response: {exc}")
-            return
-        output = data.get("output", "")
-        if data.get("ok", False):
-            if output:
-                self.log_requested.emit(output)
+        if response.ok:
+            if response.output:
+                self.log_requested.emit(response.output)
         else:
-            self.log_requested.emit(f"ERROR: {output or 'Command failed'}")
+            self.log_requested.emit(f"ERROR: {response.output or 'Command failed'}")
 
 
 def main() -> None:
