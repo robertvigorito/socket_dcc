@@ -32,8 +32,13 @@ socket-dcc save path/to/script.py
 
 The `vscode-extension/` folder contains a simple extension with these commands:
 
+- `socket-dcc: Open Control Panel`
 - `socket-dcc: Send Active Python File`
 - `socket-dcc: Save Active Python File`
 - `socket-dcc: Run Saved Python File`
 
-Set the socket host, port, token, and saved file path in VS Code settings under `socketDcc.*`.
+Use the control panel to edit the socket host, port, token, and saved file path.
+The panel also shows recently executed files.
+
+Those values are stored in VS Code settings under `socketDcc.*` and are restored
+after VS Code reloads.

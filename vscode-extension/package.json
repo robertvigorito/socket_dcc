@@ -11,6 +11,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onCommand:socketDcc.openPanel",
     "onCommand:socketDcc.sendActiveFile",
     "onCommand:socketDcc.saveActiveFile",
     "onCommand:socketDcc.runSavedFile"
@@ -18,6 +19,10 @@
   "main": "./extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "socketDcc.openPanel",
+        "title": "socket-dcc: Open Control Panel"
+      },
       {
         "command": "socketDcc.sendActiveFile",
         "title": "socket-dcc: Send Active Python File"
@@ -54,6 +59,14 @@
           "type": "string",
           "default": "",
           "description": "Previously saved Python file that can be run later."
+        },
+        "socketDcc.recentFiles": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Recent Python files executed from the socket-dcc extension."
         }
       }
     }
