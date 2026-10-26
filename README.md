@@ -1,6 +1,14 @@
 # socket-dcc
 
-Run the desktop app:
+## Install
+
+Install the package and its development dependencies with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync
+```
+
+This installs the `socket-dcc` command and the GUI dependencies. Launch the desktop app with:
 
 ```bash
 socket-dcc
@@ -28,20 +36,4 @@ You can also save a file path without sending it:
 socket-dcc save path/to/script.py
 ```
 
-## VS Code extension
-
-The `vscode-extension/` folder contains a simple extension with these commands:
-
-- `socket-dcc: Open Control Panel`
-- `socket-dcc: Send Active Python File`
-- `socket-dcc: Save Active Python File`
-- `socket-dcc: Run Saved Python File`
-
-Use the control panel to edit the socket host, port, token, and saved file path.
-The panel also shows recently executed files.
-
-Those values are stored in VS Code settings under `socketDcc.*` and are restored
-after VS Code reloads.
-
-See [`vscode-extension/INSTALL.md`](vscode-extension/INSTALL.md) for install
-and setup instructions.
+For cross-platform networking and WSL 2 setup, see [README_WSL_WIN.md](README_WSL_WIN.md).

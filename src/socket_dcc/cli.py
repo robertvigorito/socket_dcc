@@ -9,7 +9,8 @@ from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.panel import Panel
 
-from .client import send_code
+from socket_dcc.client import send_code
+from socket_dcc.interface import main as run_gui
 
 console = Console()
 
@@ -64,14 +65,17 @@ def root(ctx: typer.Context) -> None:
         ctx: Typer context.
     """
     if ctx.invoked_subcommand is None:
-        from socket_dcc.interface import main as run_gui
-
-        run_gui()
+        raise typer.Exit(code=run_gui())
 
 
-def main() -> None:
-    """Entry point for the CLI application."""
+def main() -> int:
+    """Run the CLI application.
+
+    Returns:
+        int: Zero when the CLI exits successfully.
+    """
     app()
+    return 0
 
 
 def _test_connection(code: str, test_name: str = "Testing socket-dcc") -> None:
@@ -101,6 +105,12 @@ def send(
         "--previous",
         help="Run the previously sent file instead of a new file.",
     ),
+    code: str | None = typer.Option(
+        None,
+        "--code",
+        "-c",
+        help="Python code to execute instead of reading a file.",
+    ),
     host: str = typer.Option("127.0.0.1", "--host", envvar="SOCKET_DCC_HOST"),
     port: int = typer.Option(5050, "--port", envvar="SOCKET_DCC_PORT"),
     token: str = typer.Option(..., "--token", envvar="SOCKET_DCC_TOKEN", prompt=True),
@@ -110,34 +120,41 @@ def send(
     Args:
         file: Path to Python file to execute.
         previous: Whether to execute the previously sent file.
+        code: Optional Python code to execute directly.
         host: Server hostname.
         port: Server port.
         token: Authentication token.
     """
     state_path = _state_path()
 
-    if previous and file is not None:
-        raise typer.BadParameter("Use either --previous or a file path, not both.")
+    if sum((previous, file is not None, code is not None)) > 1:
+        raise typer.BadParameter("Choose only one of --previous, --code, or a file path.")
 
-    if previous:
+    file_path: Path | None = None
+    if code is not None:
+        request_code = code
+    elif previous:
         file_path = _load_previous_file(state_path)
+        file_path = file_path.resolve()
+        if not file_path.is_file():
+            raise typer.BadParameter(f"File not found: {file_path}")
+        request_code = file_path.read_text(encoding="utf-8")
     elif file is not None:
         file_path = file
+        file_path = file_path.resolve()
+        if not file_path.is_file():
+            raise typer.BadParameter(f"File not found: {file_path}")
+        request_code = file_path.read_text(encoding="utf-8")
     else:
-        raise typer.BadParameter("Provide a file path or pass --previous.")
+        raise typer.BadParameter("Provide a file path, pass --previous, or use --code.")
 
-    file_path = file_path.resolve()
-    if not file_path.exists():
-        raise typer.BadParameter(f"File not found: {file_path}")
-
-    code = file_path.read_text(encoding="utf-8")
-    response = send_code(host, port, token, code)
+    response = send_code(host, port, token, request_code)
 
     if response.output:
         console.print(Panel(response.output, title="Output", expand=False))
 
     if response.ok:
-        if not previous:
+        if file_path is not None and not previous:
             _save_previous_file(state_path, file_path)
         console.print("[green]✓ Code executed successfully[/green]")
         return
@@ -172,9 +189,7 @@ def test() -> None:
 @app.command()
 def test_raise() -> None:
     """Test the socket server error handling by raising an exception."""
-    _test_connection(
-        'raise ValueError("Test exception")', "Testing socket-dcc (Error Condition)"
-    )
+    _test_connection('raise ValueError("Test exception")', "Testing socket-dcc (Error Condition)")
 
 
 @app.command()

@@ -1,4 +1,4 @@
-site_name: "nuix"
+site_name: "socket-dcc"
 site_dir: dist/docs
 
 nav:

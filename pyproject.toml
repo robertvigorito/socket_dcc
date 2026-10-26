@@ -5,13 +5,25 @@ description = "Socket DCC application for running code from a terminal to a DCC 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "dotenv>=0.9.9",
-    "nuix",
-    "rich>=15.0.0",
+    "PySide6>=6.7",
+    "python-dotenv>=1.0",
+    "rich>=13.7",
+    "typer>=0.12",
 ]
+
+[project.scripts]
+socket-dcc = "socket_dcc.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/robertvigorito/socket_dcc"
+Repository = "https://github.com/robertvigorito/socket_dcc"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/socket_dcc"]
 
 [dependency-groups]
 dev = [
@@ -27,7 +39,7 @@ dev = [
 ]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--cov=nuix", "--cov-report=term-missing"]
+addopts = ["-ra", "--cov=socket_dcc", "--cov-report=term-missing"]
 
 [tool.black]
 line-length = 120
@@ -37,11 +49,11 @@ profile = "black"
 line_length = 120
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 
 [tool.pylint.main]
-py-version = "3.10"
+py-version = "3.11"
 
 [tool.pylint.format]
 max-line-length = 120
@@ -52,5 +64,3 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
-[tool.uv.sources]
-nuix = { path = "../nuix", editable = true }

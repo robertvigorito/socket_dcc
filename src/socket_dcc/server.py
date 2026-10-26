@@ -52,9 +52,7 @@ class SocketExecutionServer:
         self._server: socketserver.ThreadingTCPServer | None = None
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
-        self.auth_token = (
-            auth_token or os.environ.get("SOCKET_DCC_TOKEN") or secrets.token_hex(16)
-        )
+        self.auth_token = auth_token or os.environ.get("SOCKET_DCC_TOKEN") or secrets.token_hex(16)
         self._namespace: dict[str, object] = {
             "__name__": "__socket_dcc__",
             "__builtins__": __builtins__,
@@ -114,7 +112,7 @@ class SocketExecutionServer:
                     request = json.loads(raw.decode("utf-8"))
                     code = str(request["code"])
                     token = str(request["token"])
-                except Exception as exc:  # pragma: no cover - defensive
+                except (KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
                     self._send(ExecutionResponse(False, f"Invalid request: {exc}"))
                     return
 
@@ -129,9 +127,7 @@ class SocketExecutionServer:
                 self._send(response)
 
             def _send(self, response: ExecutionResponse) -> None:
-                payload = (
-                    json.dumps({"ok": response.ok, "output": response.output}) + "\n"
-                )
+                payload = json.dumps({"ok": response.ok, "output": response.output}) + "\n"
                 self.wfile.write(payload.encode("utf-8"))
                 self.wfile.flush()
 
@@ -171,11 +167,7 @@ class SocketExecutionServer:
             file_path = None
             try:
                 file_path = Path(code.strip())
-                is_file = (
-                    file_path.exists()
-                    and file_path.is_file()
-                    and file_path.suffix == ".py"
-                )
+                is_file = file_path.exists() and file_path.is_file() and file_path.suffix == ".py"
             except (OSError, ValueError):
                 # OSError: file name too long (code is actually code, not a path)
                 # ValueError: invalid path characters
@@ -188,7 +180,7 @@ class SocketExecutionServer:
                 ):
                     if is_file and file_path is not None:
                         # Execute as a file module
-                        runpy.run_file(str(file_path), run_name="__main__")
+                        runpy.run_path(str(file_path), run_name="__main__")
                     else:
                         # Execute as code snippet
                         try:
@@ -199,7 +191,7 @@ class SocketExecutionServer:
                             result = eval(compiled, self._namespace, self._namespace)
                             if result is not None:
                                 print(repr(result))
-            except :
+            except Exception:
                 traceback.print_exc(file=stderr)
                 output = stdout.getvalue() + stderr.getvalue()
                 output = output.rstrip()

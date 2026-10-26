@@ -1,6 +1,7 @@
 """Command sending operations for the GUI."""
 
 import threading
+from typing import Any
 
 from rich.console import Console
 
@@ -10,7 +11,12 @@ console = Console()
 
 
 def send_command(
-    command_input, server, host_input, port_input, token_input, append_log_callback
+    command_input: Any,
+    server: Any,
+    host_input: Any,
+    port_input: Any,
+    token_input: Any,
+    append_log_callback: Any,
 ) -> None:
     """Send the code from the command input to the server for execution.
 
@@ -28,9 +34,7 @@ def send_command(
         return
 
     if not server.is_running:
-        error_msg = (
-            "[red]✗ Server is not running[/red]. Please click 'Start Server' first."
-        )
+        error_msg = "[red]✗ Server is not running[/red]. Please click 'Start Server' first."
         append_log_callback(error_msg)
         console.print(error_msg)
         return
@@ -46,9 +50,7 @@ def send_command(
     ).start()
 
 
-def _send_command_impl(
-    host: str, port: int, token: str, code: str, append_log_callback
-) -> None:
+def _send_command_impl(host: str, port: int, token: str, code: str, append_log_callback: Any) -> None:
     """Send code to the server and handle the response.
 
     Args:

@@ -1,6 +1,7 @@
-# nuix
+# socket-dcc
 
-Interface that holds a GUI to open and save files. Also with project creations.
+Socket DCC provides a desktop server and command-line client for sending Python
+code from a terminal to a running DCC application.
 
 ## Install
 
@@ -15,7 +16,7 @@ uv sync
 Run the command-line application:
 
 ```sh
-uv run nuix
+uv run socket-dcc
 ```
 ## Documentation development
 

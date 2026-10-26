@@ -1,12 +1,11 @@
-"""UI layout and widget setup for the main window."""
+"""Compact connection panel layout for the main window."""
 
+from typing import Any
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QDoubleSpinBox,
     QGridLayout,
-    QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
@@ -15,90 +14,64 @@ from PySide6.QtWidgets import (
 )
 
 
-def create_central_widget() -> tuple[QWidget, dict]:
-    """Create the central widget and return it with references to key components.
+def create_central_widget(ip_address: str) -> tuple[QWidget, dict[str, Any]]:
+    """Create the connection panel and return its interactive components.
+
+    Args:
+        ip_address: Local address displayed in the connection panel.
 
     Returns:
-        Tuple of (central_widget, components_dict)
+        tuple[QWidget, dict[str, Any]]: Central widget and named component references.
     """
     central = QWidget()
     layout = QVBoxLayout(central)
+    layout.setContentsMargins(8, 8, 8, 8)
+    layout.setSpacing(5)
 
-    # Connection settings row
-    connection_row = QGridLayout()
-    host_input = QLineEdit("127.0.0.1")
+    details = QGridLayout()
+    details.setContentsMargins(0, 0, 0, 0)
+    details.setHorizontalSpacing(5)
+    details.setVerticalSpacing(4)
+
+    status_title = QLabel("Status:")
+    status_value = QLabel("Idle")
+    status_value.setObjectName("statusValue")
+    ip_title = QLabel("IP:")
+    ip_value = QLabel(ip_address)
+    port_title = QLabel("Port:")
     port_input = QSpinBox()
     port_input.setRange(1, 65535)
-    port_input.setValue(5050)
-    token_input = QLineEdit()
-    token_input.setReadOnly(True)
-    status_label = QLabel("Server stopped")
+    port_input.setValue(54322)
+    port_input.setFixedWidth(64)
 
-    connection_row.addWidget(QLabel("Host"), 0, 0)
-    connection_row.addWidget(host_input, 0, 1)
-    connection_row.addWidget(QLabel("Port"), 0, 2)
-    connection_row.addWidget(port_input, 0, 3)
-    connection_row.addWidget(QLabel("Token"), 1, 0)
-    connection_row.addWidget(token_input, 1, 1, 1, 3)
+    details.addWidget(status_title, 0, 0, alignment=Qt.AlignmentFlag.AlignRight)
+    details.addWidget(status_value, 0, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+    details.addWidget(ip_title, 1, 0, alignment=Qt.AlignmentFlag.AlignRight)
+    details.addWidget(ip_value, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+    details.addWidget(port_title, 2, 0, alignment=Qt.AlignmentFlag.AlignRight)
+    details.addWidget(port_input, 2, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+    details.setColumnStretch(2, 1)
 
-    # Auto-stop row
-    auto_stop_checkbox = QCheckBox("Auto-stop server")
-    auto_stop_checkbox.setChecked(False)
-    auto_stop_timeout = QDoubleSpinBox()
-    auto_stop_timeout.setRange(0.1, 60.0)
-    auto_stop_timeout.setValue(1.0)
-    auto_stop_timeout.setDecimals(1)
-    auto_stop_timeout.setSuffix(" min")
+    connect_button = QPushButton("Connect")
+    connect_button.setObjectName("connectButton")
+    connect_button.setMinimumHeight(24)
 
-    connection_row.addWidget(auto_stop_checkbox, 2, 0)
-    connection_row.addWidget(QLabel("Timeout:"), 2, 1)
-    connection_row.addWidget(auto_stop_timeout, 2, 2)
-
-    # Buttons row
-    button_row = QHBoxLayout()
-    start_button = QPushButton("Start Server")
-    stop_button = QPushButton("Stop Server")
-    run_button = QPushButton("Send Python Command")
-    clear_button = QPushButton("Clear Log")
-    host_button = QPushButton("Get Host Info")
-
-    button_row.addWidget(start_button)
-    button_row.addWidget(stop_button)
-    button_row.addWidget(run_button)
-    button_row.addWidget(clear_button)
-    button_row.addWidget(host_button)
-
-    # Command and log areas
-    command_input = QPlainTextEdit("print('hello from socket-dcc')")
-    command_input.setPlaceholderText(
-        "Enter Python code to execute on the socket server"
-    )
     log_output = QPlainTextEdit()
+    log_output.setObjectName("logOutput")
     log_output.setReadOnly(True)
+    log_output.setPlaceholderText("Server activity will appear here")
+    log_output.setMinimumHeight(120)
+    log_output.hide()
 
-    # Assemble layout
-    layout.addLayout(connection_row)
-    layout.addWidget(status_label)
-    layout.addWidget(QLabel("Python command"))
-    layout.addWidget(command_input)
-    layout.addLayout(button_row)
-    layout.addWidget(QLabel("Log"))
+    layout.addLayout(details)
+    layout.addWidget(connect_button)
     layout.addWidget(log_output)
 
     components = {
-        "host_input": host_input,
+        "status_value": status_value,
+        "ip_value": ip_value,
         "port_input": port_input,
-        "token_input": token_input,
-        "status_label": status_label,
-        "auto_stop_checkbox": auto_stop_checkbox,
-        "auto_stop_timeout": auto_stop_timeout,
-        "start_button": start_button,
-        "stop_button": stop_button,
-        "run_button": run_button,
-        "clear_button": clear_button,
-        "host_button": host_button,
-        "command_input": command_input,
+        "connect_button": connect_button,
         "log_output": log_output,
     }
-
     return central, components

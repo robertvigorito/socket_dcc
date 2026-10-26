@@ -1,20 +1,22 @@
 """Server control operations for the GUI."""
 
+from typing import Any
+
 from rich.console import Console
 
 console = Console()
 
 
 def start_server(
-    server,
-    host_input,
-    port_input,
-    auto_stop_checkbox,
-    auto_stop_timeout,
-    auto_stop_timer,
-    start_button,
-    stop_button,
-    append_log_callback,
+    server: Any,
+    host_input: Any,
+    port_input: Any,
+    auto_stop_checkbox: Any,
+    auto_stop_timeout: Any,
+    auto_stop_timer: Any,
+    start_button: Any,
+    stop_button: Any,
+    append_log_callback: Any,
 ) -> None:
     """Start the execution server on configured host and port.
 
@@ -31,9 +33,7 @@ def start_server(
     """
     try:
         server.start(host_input.text().strip(), int(port_input.value()))
-        start_button.setStyleSheet(
-            "background-color: #4CAF50; color: white; font-weight: bold;"
-        )
+        start_button.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
         start_button.setDown(True)
         stop_button.setStyleSheet("")
         stop_button.setDown(False)
@@ -58,7 +58,7 @@ def start_server(
         console.print(error_msg)
 
 
-def stop_server(server, auto_stop_timer, stop_button, start_button) -> None:
+def stop_server(server: Any, auto_stop_timer: Any, stop_button: Any, start_button: Any) -> None:
     """Stop the execution server.
 
     Args:
@@ -69,9 +69,7 @@ def stop_server(server, auto_stop_timer, stop_button, start_button) -> None:
     """
     auto_stop_timer.stop()
     server.stop()
-    stop_button.setStyleSheet(
-        "background-color: #FF9800; color: white; font-weight: bold;"
-    )
+    stop_button.setStyleSheet("background-color: #FF9800; color: white; font-weight: bold;")
     stop_button.setDown(True)
     start_button.setStyleSheet("")
     start_button.setDown(False)

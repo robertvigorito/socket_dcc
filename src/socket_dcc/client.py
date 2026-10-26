@@ -3,7 +3,7 @@
 import json
 import socket
 
-from .server import ExecutionResponse
+from socket_dcc.server import ExecutionResponse
 
 
 def send_code(host: str, port: int, token: str, code: str) -> ExecutionResponse:
