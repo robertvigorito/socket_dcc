@@ -14,7 +14,21 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.resize(900, 700)
     window.show()
 
     sys.exit(app.exec())
+
+
+def load_in_application() -> None:
+    """Load the socket-dcc GUI application within an existing QApplication."""
+    setup_signal_handlers()
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+
+    window = MainWindow()
+    window.show()
+
+
+load_in_application()

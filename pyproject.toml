@@ -1,24 +1,56 @@
 [project]
 name = "socket-dcc"
 version = "0.1.0"
-description = "Add your description here"
+description = "Socket DCC application for running code from a terminal to a DCC environment."
 readme = "README.md"
-authors = [
-    { name = "rvigorito", email = "rvigorito@d2.com" }
+requires-python = ">=3.11"
+dependencies = [
+    "dotenv>=0.9.9",
+    "nuix",
+    "rich>=15.0.0",
 ]
-requires-python = ">=3.12"
-dependencies = ["PySide6==6.11.2", "typer>=0.12,<0.28", "python-dotenv>=1.0.0", "rich>=13.0.0"]
-
-[project.scripts]
-socket-dcc = "socket_dcc:main"
-
 [build-system]
-requires = ["uv_build>=0.9.11,<0.10.0"]
-build-backend = "uv_build"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.1",
-    "pytest>=9.1.1",
-    "ruff>=0.16.3",
+    "mypy>=1.10",
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.6",
+    "mkdocstrings[python]>=0.27",
+    "pylint>=3.2",
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "pytest-sugar>=1.0",
+    "pytest-cov>=6.0",
 ]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--cov=nuix", "--cov-report=term-missing"]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+
+[tool.pylint.main]
+py-version = "3.10"
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.uv.sources]
+nuix = { path = "../nuix", editable = true }

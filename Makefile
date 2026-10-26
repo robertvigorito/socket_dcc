@@ -1,0 +1,80 @@
+package=nuix
+
+.PHONY: clean build clean-build clean-pyc clean-test docs docs-serve format lint check lint-check install poetry-install test test-all script coverage
+
+clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+
+build: clean
+	$(eval BUILD_LOCATION=./.build)
+	pip install . -t $(BUILD_LOCATION) --upgrade
+
+clean-build: ## remove build artifacts
+	rm -fr out/
+	rm -fr build/
+	rm -fr .build/
+	rm -fr dist/
+	rm -fr .eggs/
+	rm -fr .tox .ruff_cache .mypy_cache
+	rm -fr cov.xml
+	rm -fr coverage.xml
+	rm -fr dump.rdb
+	find . -name '*.egg-info' -exec rm -fr {} +
+	find . -name '*.egg' -exec rm -f {} +
+
+clean-pyc: ## remove Python file artifacts
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
+
+clean-test: ## remove test and coverage artifacts
+	rm -fr .tox/
+	rm -f .coverage
+	rm -fr htmlcov/
+	rm -fr .pytest_cache
+	rm -fr tests/.pytest_cache
+
+docs: ## build the MkDocs documentation site
+	uv run mkdocs build
+
+docs-serve: ## preview documentation with live reload
+	uv run mkdocs serve
+
+
+format: ## apply safe Ruff fixes and format Python files
+	ruff check --fix .
+	ruff format .
+
+
+lint:
+	$(eval files=$(shell find ./src -type f -name "*.py"))
+	@isort --check-only --color $(files) --profile black || echo "isort failed"
+	@black --check $(files) || echo "black failed"
+	pylint --exit-zero $(files)
+	ruff check $(files)
+	mypy --ignore-missing-imports $(files)
+
+check:
+	@mypy ./src
+
+lint-check: lint check
+
+install: clean
+	pip install --upgrade .
+
+poetry-install: clean
+	poetry install
+
+test: ## run tests quickly with the default Python
+	$(MAKE) poetry-install
+	pytest ./tests
+
+test-all: ## run tests on every Python version with tox
+	tox
+
+script:
+	$(eval SCRIPTS=$(shell find ./scripts -type f -name "*"))
+	@install -v -m 555 $(SCRIPTS) /software/scripts/
+
+coverage: ## check code coverage quickly with the default Python
+	wslview ./htmlcov/index.html
