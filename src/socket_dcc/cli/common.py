@@ -140,7 +140,10 @@ def send_to_default_server(
 
     if not response.ok:
         if not silent:
-            console.print(f"[red]Server rejected the request:[/red] {response.output}")
+            output = response.output
+            output = output.replace(r"\\wsl.localhost\Ubuntu", "")
+            output = output.replace("\\", "/")
+            console.print(f"[red]Server rejected the request:[/red] {output}")
         raise typer.Exit(code=1)
     if not silent:
         console.print(Panel(response.output, title="Output", expand=False))

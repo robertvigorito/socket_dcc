@@ -90,6 +90,26 @@ def test_menu_settings_are_saved_and_restored() -> None:
     app.processEvents()
 
 
+def test_menu_setting_is_saved_when_action_is_triggered() -> None:
+    """Verify a menu preference is saved before the window closes.
+
+    Returns:
+        None: Asserts the triggered action updates persistent settings immediately.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    settings = Qt.QtCore.QSettings("socket-dcc", "socket-dcc")
+    settings.clear()
+
+    window = MainWindow()
+    window.auto_disconnect_action.trigger()
+
+    assert settings.value(gui_window._MENU_SETTINGS["auto_disconnect"], type=bool)
+
+    window.close()
+    settings.clear()
+    app.processEvents()
+
+
 def test_disconnect_logs_reason_and_resets_connection_controls() -> None:
     """Verify disconnect records a message and restores editable controls.
 

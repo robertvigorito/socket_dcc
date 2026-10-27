@@ -5,6 +5,7 @@ import typer
 from socket_dcc.cli.code import send_code_command
 from socket_dcc.cli.configure import configure
 from socket_dcc.cli.generate_token import generate_token
+from socket_dcc.cli.info import info
 from socket_dcc.cli.path import run_path
 from socket_dcc.cli.show import show
 from socket_dcc.cli.test import test
@@ -21,6 +22,7 @@ app.command(name="code")(send_code_command)
 app.command(name="path")(run_path)
 app.command(name="configure")(configure)
 app.command(name="generate-token")(generate_token)
+app.command(name="info")(info)
 
 
 def main() -> int:

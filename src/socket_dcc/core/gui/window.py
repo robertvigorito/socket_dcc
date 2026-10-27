@@ -145,6 +145,15 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         code_menu.addAction("Clear Submitted Code", self.submitted_code.clear)
 
         self._load_menu_settings()
+        for action in (
+            self.always_on_top_action,
+            self.auto_disconnect_action,
+            self.auto_close_action,
+            self.show_log_action,
+            self.show_code_action,
+            self.append_code_action,
+        ):
+            cast(Any, action.triggered).connect(self._save_menu_settings)
 
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction("About socket-dcc", self._show_about)
@@ -305,6 +314,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         if dialog.exec() == getattr(Qt.QtWidgets.QDialog, "Accepted"):
             minutes = dialog.intValue()
             self._idle_timeout_seconds = minutes * 60
+            self._save_menu_settings()
             if self.server.is_running and self.auto_disconnect_action.isChecked():
                 self.idle_timer.start(self._idle_timeout_seconds * 1000)
             self._append_log(f"Idle timeout set to {minutes} minute(s).")

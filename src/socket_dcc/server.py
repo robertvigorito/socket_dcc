@@ -1,5 +1,6 @@
 """Socket-based Python code execution server."""
 
+import ast
 import contextlib
 import io
 import json
@@ -26,6 +27,47 @@ class ExecutionResponse:
 
     ok: bool
     output: str
+
+
+def _normalize_traceback_paths(output: str) -> str:
+    """Use forward slashes in traceback frame paths, including WSL UNC paths.
+
+    Args:
+        output: Formatted Python traceback text.
+
+    Returns:
+        str: Traceback text with Python frame paths normalized to forward slashes.
+    """
+    normalized_lines: list[str] = []
+    for line in output.splitlines(keepends=True):
+        marker = line.find('File "')
+        quote = '"'
+        if marker == -1:
+            marker = line.find("File '")
+            quote = "'"
+        if marker == -1:
+            normalized_lines.append(line)
+            continue
+
+        path_start = marker + len("File ")
+        path_end = line.find(f"{quote}, line ", path_start + 1)
+        if path_end == -1:
+            normalized_lines.append(line)
+            continue
+
+        path_literal = line[path_start : path_end + 1]
+        try:
+            path = ast.literal_eval(path_literal)
+        except (SyntaxError, ValueError):
+            normalized_lines.append(line)
+            continue
+        if not isinstance(path, str):
+            normalized_lines.append(line)
+            continue
+
+        normalized_path = path.replace("\\", "/")
+        normalized_lines.append(f"{line[:marker]}File {normalized_path!r}{line[path_end + 1 :]}")
+    return "".join(normalized_lines)
 
 
 class SocketExecutionServer:
@@ -187,15 +229,18 @@ class SocketExecutionServer:
                         try:
                             compiled = compile(code, "<socket-dcc>", "eval")
                         except SyntaxError:
-                            exec(code, self._namespace, self._namespace)
+                            compiled = None
+                        if compiled is None:
+                            compiled = compile(code, "<socket-dcc>", "exec")
+                            exec(compiled, self._namespace, self._namespace)
                         else:
                             result = eval(compiled, self._namespace, self._namespace)
                             if result is not None:
                                 print(repr(result))
             except Exception:
-                traceback.print_exc(file=stderr)
-                output = stdout.getvalue() + stderr.getvalue()
-                output = output.rstrip()
+                output = traceback.format_exc()
+                stderr.write(_normalize_traceback_paths(output))
+                output = (stdout.getvalue() + stderr.getvalue()).rstrip()
                 self._log(output)
                 return ExecutionResponse(False, output)
 

@@ -56,6 +56,13 @@ Click "Get Host Info" in the GUI to see:
 socket-dcc send /path/to/script.py --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
 ```
 
+To run a script stored in WSL using the Windows GUI server, use `path --wsl` to convert the Linux path with
+`wslpath` before sending it:
+
+```bash
+socket-dcc path /path/to/script.py --wsl --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
+```
+
 Or send code directly:
 ```bash
 socket-dcc send -c 'print("Hello from WSL")' --host 172.31.224.1 --port 5050 --token YOUR_TOKEN

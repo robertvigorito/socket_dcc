@@ -116,6 +116,43 @@ def test_path_silent_suppresses_sender_and_server_output(monkeypatch, tmp_path: 
     )
 
 
+def test_path_wsl_converts_path_and_previous_reuses_flag(monkeypatch, tmp_path: Path) -> None:
+    """Verify --wsl converts the path and the previous invocation retains the option.
+
+    Args:
+        monkeypatch: Pytest fixture used to replace path conversion and network calls.
+        tmp_path: Temporary directory used to create the Python file and saved state.
+
+    Returns:
+        None: Asserts the Windows path is sent for both invocations.
+    """
+    path_module = import_module("socket_dcc.cli.path")
+    python_file = tmp_path / "wsl_example.py"
+    python_file.write_text("pass\n", encoding="utf-8")
+    monkeypatch.setenv("SOCKET_DCC_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(common, "get_default_settings", lambda: (54322, "default-token"))
+    monkeypatch.setattr(common, "get_default_host", lambda: "127.0.0.1")
+    convert_path = Mock(return_value=Mock(stdout="C:\\project\\wsl_example.py\n"))
+    monkeypatch.setattr(path_module.subprocess, "run", convert_path)
+    send_code = Mock(return_value=ExecutionResponse(True, "ok"))
+    monkeypatch.setattr(common, "send_code", send_code)
+    runner = CliRunner()
+
+    first_result = runner.invoke(cli.app, ["path", str(python_file), "--wsl"])
+    previous_result = runner.invoke(cli.app, ["path", "--previous"])
+
+    assert first_result.exit_code == 0, first_result.output
+    assert previous_result.exit_code == 0, previous_result.output
+    assert convert_path.call_count == 2
+    convert_path.assert_called_with(
+        ["wslpath", "-w", str(python_file.resolve())],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    send_code.assert_called_with("C:\\project\\wsl_example.py", host="127.0.0.1", port=54322, token="default-token")
+
+
 def test_silent_connection_failure_reports_error(monkeypatch, tmp_path: Path) -> None:
     """Verify silent mode reports a connection failure and exits unsuccessfully.
 
@@ -349,4 +386,46 @@ def test_configure_prompts_with_defaults_for_omitted_options(monkeypatch) -> Non
 
     assert result.exit_code == 0, result.output
     save_default_settings.assert_called_once_with(port=54322, token="default-token", host="127.0.0.1")
+    assert str(env_file) in result.output
+
+
+def test_info_prints_all_environment_file_contents(monkeypatch, tmp_path: Path) -> None:
+    """Verify info prints the canonical environment file including every value.
+
+    Args:
+        monkeypatch: Pytest fixture used to set the environment file location.
+        tmp_path: Pytest fixture used to create an isolated .env file.
+
+    Returns:
+        None: Asserts all file contents are displayed without filtering values.
+    """
+    env_file = tmp_path / ".env"
+    contents = "SOCKET_DCC_HOST=localhost\nSOCKET_DCC_PORT=54321\nSOCKET_DCC_TOKEN=secret-token\n"
+    env_file.write_text(contents, encoding="utf-8")
+    monkeypatch.setenv("SOCKET_DCC_ENV_FILE", str(env_file))
+
+    result = CliRunner().invoke(cli.app, ["info"])
+
+    assert result.exit_code == 0, result.output
+    assert f"Environment file: {env_file}" in result.output
+    assert contents in result.output
+
+
+def test_info_reports_missing_environment_file(monkeypatch, tmp_path: Path) -> None:
+    """Verify info exits with an error when the environment file is missing.
+
+    Args:
+        monkeypatch: Pytest fixture used to set the environment file location.
+        tmp_path: Pytest fixture used to provide a missing file path.
+
+    Returns:
+        None: Asserts the missing file is reported as a CLI error.
+    """
+    env_file = tmp_path / ".env"
+    monkeypatch.setenv("SOCKET_DCC_ENV_FILE", str(env_file))
+
+    result = CliRunner().invoke(cli.app, ["info"])
+
+    assert result.exit_code == 2
+    assert "Could not read environment file" in result.output
     assert str(env_file) in result.output
