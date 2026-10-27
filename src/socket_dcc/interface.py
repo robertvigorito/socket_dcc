@@ -2,22 +2,27 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication
+from Qt import QtWidgets
 
 from socket_dcc.core.gui.signals import setup_signal_handlers
 from socket_dcc.core.gui.window import MainWindow
 
 
-def main() -> int:
+def main(host: str | None = None, port: int | None = None, token: str | None = None) -> int:
     """Launch the socket-dcc GUI application.
+
+    Args:
+        host: Optional server host override.
+        port: Optional server port override.
+        token: Optional authentication token override.
 
     Returns:
         int: The Qt event-loop exit status.
     """
     setup_signal_handlers()
 
-    app = QApplication.instance() or QApplication(sys.argv)
-    window = MainWindow()
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
+    window = MainWindow(host=host, port=port, token=token)
     window.show()
 
     return app.exec()
@@ -31,8 +36,8 @@ def load_in_application() -> object:
     """
     setup_signal_handlers()
 
-    if QApplication.instance() is None:
-        QApplication(sys.argv)
+    if QtWidgets.QApplication.instance() is None:
+        QtWidgets.QApplication(sys.argv)
 
     window = MainWindow()
     window.show()

@@ -61,7 +61,7 @@ def _send_command_impl(host: str, port: int, token: str, code: str, append_log_c
         append_log_callback: Callback to append to log.
     """
     try:
-        response = send_code(host, port, token, code)
+        response = send_code(code, host=host, port=port, token=token)
     except OSError as exc:
         error_msg = (
             f"[red]✗ Connection Failed[/red]: Could not connect to server at {host}:{port}\n"

@@ -3,7 +3,7 @@
 import socket
 from typing import Any
 
-from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
+import Qt
 from rich.console import Console
 from rich.style import Style
 from rich.terminal_theme import DEFAULT_TERMINAL_THEME
@@ -24,7 +24,7 @@ def append_log(log_output: Any, message: str) -> None:
     if message:
         text = console.render_str(message)
         cursor = log_output.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.movePosition(getattr(Qt.QtGui.QTextCursor, "End"))
         if not log_output.document().isEmpty():
             cursor.insertBlock()
 
@@ -37,27 +37,27 @@ def append_log(log_output: Any, message: str) -> None:
         console.print(message)
 
 
-def _char_format(style: Style | None) -> QTextCharFormat:
+def _char_format(style: Style | None) -> Qt.QtGui.QTextCharFormat:
     """Convert a Rich style to a Qt character format.
 
     Args:
         style: Rich style for a text segment.
 
     Returns:
-        QTextCharFormat: Qt formatting matching the Rich foreground/background and emphasis.
+        Qt.QtGui.QTextCharFormat: Qt formatting matching the Rich foreground/background and emphasis.
     """
-    char_format = QTextCharFormat()
+    char_format = Qt.QtGui.QTextCharFormat()
     if style is None:
         return char_format
 
     if style.color is not None:
         color = style.color.get_truecolor(DEFAULT_TERMINAL_THEME)
-        char_format.setForeground(QColor(color.red, color.green, color.blue))
+        char_format.setForeground(Qt.QtGui.QColor(color.red, color.green, color.blue))
     if style.bgcolor is not None:
         color = style.bgcolor.get_truecolor(DEFAULT_TERMINAL_THEME)
-        char_format.setBackground(QColor(color.red, color.green, color.blue))
+        char_format.setBackground(Qt.QtGui.QColor(color.red, color.green, color.blue))
     if style.bold:
-        char_format.setFontWeight(QFont.Weight.Bold)
+        char_format.setFontWeight(getattr(Qt.QtGui.QFont, "Bold"))
     if style.italic:
         char_format.setFontItalic(True)
     if style.underline:

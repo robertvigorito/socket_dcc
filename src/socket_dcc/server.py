@@ -5,13 +5,14 @@ import io
 import json
 import os
 import runpy
-import secrets
 import socketserver
 import threading
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+
+from socket_dcc.defaults import get_default_settings
 
 
 @dataclass(slots=True)
@@ -52,7 +53,7 @@ class SocketExecutionServer:
         self._server: socketserver.ThreadingTCPServer | None = None
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
-        self.auth_token = auth_token or os.environ.get("SOCKET_DCC_TOKEN") or secrets.token_hex(16)
+        self.auth_token = auth_token or os.environ.get("SOCKET_DCC_TOKEN") or get_default_settings()[1]
         self._namespace: dict[str, object] = {
             "__name__": "__socket_dcc__",
             "__builtins__": __builtins__,

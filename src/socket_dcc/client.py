@@ -3,17 +3,23 @@
 import json
 import socket
 
+from socket_dcc.defaults import get_default_host, get_default_settings
 from socket_dcc.server import ExecutionResponse
 
 
-def send_code(host: str, port: int, token: str, code: str) -> ExecutionResponse:
+def send_code(
+    code: str,
+    host: str | None = None,
+    port: int | None = None,
+    token: str | None = None,
+) -> ExecutionResponse:
     """Send code to the server for remote execution.
 
     Args:
-        host: Server hostname or IP address.
-        port: Server port number.
-        token: Authentication token for the server.
         code: Python code to execute on the server.
+        host: Server hostname or IP address.
+        port: Server port number. Defaults to the shared configured port.
+        token: Authentication token. Defaults to the shared configured token.
 
     Returns:
         ExecutionResponse: Contains execution status and output.
@@ -21,6 +27,16 @@ def send_code(host: str, port: int, token: str, code: str) -> ExecutionResponse:
     Raises:
         socket.error: If connection to server fails.
     """
+    if host is None or port is None or token is None:
+        default_port, default_token = get_default_settings()
+        host = get_default_host() if host is None else host
+        port = default_port if port is None else port
+        token = default_token if token is None else token
+
+    assert host is not None
+    assert port is not None
+    assert token is not None
+
     with socket.create_connection((host, port), timeout=3) as sock:
         payload = json.dumps({"code": code, "token": token}) + "\n"
         sock.sendall(payload.encode("utf-8"))

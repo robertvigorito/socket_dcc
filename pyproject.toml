@@ -5,7 +5,7 @@ description = "Socket DCC application for running code from a terminal to a DCC 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "PySide6>=6.7",
+    "Qt.py>=1.4.1",
     "python-dotenv>=1.0",
     "rich>=13.7",
     "typer>=0.12",
@@ -28,6 +28,7 @@ packages = ["src/socket_dcc"]
 [dependency-groups]
 dev = [
     "mypy>=1.10",
+    "PySide6>=6.7",
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.6",
     "mkdocstrings[python]>=0.27",

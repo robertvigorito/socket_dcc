@@ -1291,6 +1291,18 @@ wheels = [
 ]
 
 [[package]]
+name = "qt-py"
+version = "2.0.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-pyside6" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/ad/cd4dbe883f891c8bb8c876eebca935275a5f204da7744a6b26c57fb666e7/qt_py-2.0.7.tar.gz", hash = "sha256:4d053c3bd64b7af5d35ece16c29962c5f0d3dbbf759c94d3fe3d5af68f09623b", size = 65935, upload-time = "2026-09-22T05:07:51.62Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/bc/23f3dff80819f495ad5c783ff55ff5d71f57b8c7294b37cb535190e3c602/qt_py-2.0.7-py3-none-any.whl", hash = "sha256:a17896d06dd00dfabe37706360a3f4ce06fa1759c1b3132f87e2f34d22471b85", size = 46963, upload-time = "2026-09-22T05:07:50.227Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1378,8 +1390,8 @@ name = "socket-dcc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "pyside6" },
     { name = "python-dotenv" },
+    { name = "qt-py" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -1391,6 +1403,7 @@ dev = [
     { name = "mkdocstrings", extra = ["python"] },
     { name = "mypy" },
     { name = "pylint" },
+    { name = "pyside6" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-sugar" },
@@ -1399,8 +1412,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pyside6", specifier = ">=6.7" },
     { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "qt-py", specifier = ">=1.4.1" },
     { name = "rich", specifier = ">=13.7" },
     { name = "typer", specifier = ">=0.12" },
 ]
@@ -1412,6 +1425,7 @@ dev = [
     { name = "mkdocstrings", extras = ["python"], specifier = ">=0.27" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "pylint", specifier = ">=3.2" },
+    { name = "pyside6", specifier = ">=6.7" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=6.0" },
     { name = "pytest-sugar", specifier = ">=1.0" },
@@ -1449,6 +1463,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/03/51/d33db42cc72ffd8c30777547b42d01f0cbf9d95a770457698d0174b3ed71/typer-0.27.3.tar.gz", hash = "sha256:d0396f770a560ab1b0a8504e13b5f254b728cedb05c61cf0359e944e50ce8901", size = 205303, upload-time = "2026-10-06T17:24:16.61Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/ea/2e31b67051e91a133189e9c000c222502ddc6969856416de0d095de4c0b0/typer-0.27.3-py3-none-any.whl", hash = "sha256:e50022f28b82a86313e54501317a1db64bf8f8d036ff8cfe5ca7e47675454aff", size = 123312, upload-time = "2026-10-06T17:24:15.054Z" },
+]
+
+[[package]]
+name = "types-pyside6"
+version = "6.10.3.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/a2/d4df95667ad290249bfb45f8082c7e4d5b46b8f3f01aa94a7420b9974116/types_pyside6-6.10.3.0-py2.py3-none-any.whl", hash = "sha256:abb3360637b1980c0d8b456c9b3f3031e0d0dd146df03b677e17a577e9892b8e", size = 609993, upload-time = "2026-08-13T19:25:32.565Z" },
 ]
 
 [[package]]

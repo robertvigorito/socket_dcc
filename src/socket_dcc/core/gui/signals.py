@@ -19,7 +19,8 @@ def _signal_handler(signum: int, frame: object) -> None:
     """
     global _signal_received
     _signal_received = True
-    if signum == signal.SIGTSTP:
+    sigtstp = getattr(signal, "SIGTSTP", None)
+    if signum == sigtstp:
         console.print("[yellow]Ctrl+Z detected[/yellow]")
     elif signum == signal.SIGINT:
         console.print("[yellow]Ctrl+C detected[/yellow]")
@@ -27,7 +28,9 @@ def _signal_handler(signum: int, frame: object) -> None:
 
 def setup_signal_handlers() -> None:
     """Set up signal handlers for the GUI."""
-    signal.signal(signal.SIGTSTP, _signal_handler)
+    sigtstp = getattr(signal, "SIGTSTP", None)
+    if sigtstp is not None:
+        signal.signal(sigtstp, _signal_handler)
     signal.signal(signal.SIGINT, _signal_handler)
 
 

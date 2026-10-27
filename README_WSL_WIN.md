@@ -46,7 +46,7 @@ Click "Get Host Info" in the GUI to see:
 **Windows side (GUI server):**
 1. Launch socket-dcc GUI
 2. In the "Host" field, change from `127.0.0.1` to `0.0.0.0`
-3. Keep or change the port (default: 5050)
+3. Use the generated port shown in the GUI, or choose a port and set `SOCKET_DCC_PORT` for both processes
 4. Click "Start Server"
 5. Note the token displayed
 
@@ -66,7 +66,7 @@ socket-dcc send -c 'print("Hello from WSL")' --host 172.31.224.1 --port 5050 --t
 **WSL side (GUI server):**
 1. Launch socket-dcc GUI in WSL
 2. In the "Host" field, change from `127.0.0.1` to `0.0.0.0`
-3. Keep or change the port (default: 5050)
+3. Use the generated port shown in the GUI, or choose a port and set `SOCKET_DCC_PORT` for both processes
 4. Click "Start Server"
 5. Note the token and WSL IP
 
@@ -91,11 +91,14 @@ When connecting across the Windows/WSL boundary:
 
 ## Setting Environment Variables
 
-Store your connection details in `.env`:
+Store your connection details in `.env`. On first launch, socket-dcc generates a port and token and saves
+them as `SOCKET_DCC_PORT` and `SOCKET_DCC_TOKEN`. For client/server use across Windows and WSL, copy
+the same values to both environments:
 
 ```bash
 # In your project root
 SOCKET_DCC_TOKEN=your_secure_token_here
+SOCKET_DCC_PORT=your_selected_port
 ```
 
 Or temporarily in terminal:
@@ -140,7 +143,7 @@ sudo ufw allow 5050
 - **Solution**: 
   - Verify server is running on correct IP (use `0.0.0.0` for cross-boundary)
   - Check correct IP address (confirm with `Get Host Info`)
-  - Ensure port matches (default 5050)
+  - Ensure port matches the generated port shown in the GUI
   - Check firewall isn't blocking the port
 
 ### File Name Too Long Error
