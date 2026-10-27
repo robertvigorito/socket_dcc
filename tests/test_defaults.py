@@ -61,3 +61,44 @@ def test_env_path_is_stable_across_working_directories(monkeypatch, tmp_path) ->
 
     assert first_path == env_file
     assert defaults.get_env_path() == first_path
+
+
+def test_saved_host_is_used_as_default(monkeypatch, tmp_path) -> None:
+    """Use a persisted host from the canonical environment file.
+
+    Args:
+        monkeypatch: Pytest fixture for environment and working-directory isolation.
+        tmp_path: Pytest fixture providing an isolated temporary directory.
+
+    Returns:
+        None: Asserts the saved host is returned as the configured default.
+    """
+    env_file = tmp_path / ".env"
+    monkeypatch.setenv("SOCKET_DCC_ENV_FILE", str(env_file))
+    monkeypatch.delenv("SOCKET_DCC_HOST", raising=False)
+    env_file.write_text("SOCKET_DCC_HOST=192.168.10.20\n", encoding="utf-8")
+
+    assert defaults.get_default_host() == "192.168.10.20"
+
+
+def test_save_default_settings_can_update_host_only(monkeypatch, tmp_path) -> None:
+    """Persist a host without replacing the existing port and token.
+
+    Args:
+        monkeypatch: Pytest fixture for environment isolation.
+        tmp_path: Pytest fixture providing an isolated temporary directory.
+
+    Returns:
+        None: Asserts the host is written while unspecified values remain absent.
+    """
+    env_file = tmp_path / ".env"
+    monkeypatch.setenv("SOCKET_DCC_ENV_FILE", str(env_file))
+    monkeypatch.delenv("SOCKET_DCC_HOST", raising=False)
+    monkeypatch.delenv("SOCKET_DCC_PORT", raising=False)
+    monkeypatch.delenv("SOCKET_DCC_TOKEN", raising=False)
+
+    defaults.save_default_settings(host="192.168.10.21")
+
+    assert env_file.read_text(encoding="utf-8").strip() == "SOCKET_DCC_HOST='192.168.10.21'"
+    assert "SOCKET_DCC_PORT" not in __import__("os").environ
+    assert "SOCKET_DCC_TOKEN" not in __import__("os").environ

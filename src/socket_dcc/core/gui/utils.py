@@ -1,14 +1,32 @@
 """Utility functions for the GUI."""
 
-import socket
 from typing import Any
 
 import Qt
 from rich.console import Console
 from rich.style import Style
 from rich.terminal_theme import DEFAULT_TERMINAL_THEME
+from rich.text import Text
 
 console = Console()
+
+
+def _render_log_message(message: str) -> Text:
+    """Render log text, emphasizing traceback output for readability.
+
+    Args:
+        message: Message to render in the GUI log.
+
+    Returns:
+        Text: Rich text with traceback syntax coloring disabled and the exception emphasized.
+    """
+    if "Traceback (most recent call last):" not in message:
+        return console.render_str(message)
+
+    text = Text(message, style=Style(color="#f2f2f2"))
+    exception_start = message.rfind("\n") + 1
+    text.stylize(Style(color="#ff6b6b", bold=True), exception_start, len(message))
+    return text
 
 
 def append_log(log_output: Any, message: str) -> None:
@@ -22,7 +40,7 @@ def append_log(log_output: Any, message: str) -> None:
         None: Appends styled text to the log and prints it to the terminal.
     """
     if message:
-        text = console.render_str(message)
+        text = _render_log_message(message)
         cursor = log_output.textCursor()
         cursor.movePosition(getattr(Qt.QtGui.QTextCursor, "End"))
         if not log_output.document().isEmpty():
@@ -65,38 +83,3 @@ def _char_format(style: Style | None) -> Qt.QtGui.QTextCharFormat:
     if style.strike:
         char_format.setFontStrikeOut(True)
     return char_format
-
-
-def set_status(status_label: Any, message: str) -> None:
-    """Update the status label.
-
-    Args:
-        status_label: QLabel widget for status display.
-        message: Status message to display.
-    """
-    status_label.setText(message)
-
-
-def clear_log(log_output: Any) -> None:
-    """Clear the log output.
-
-    Args:
-        log_output: QPlainTextEdit widget to clear.
-    """
-    log_output.clear()
-    console.print("[yellow]Log cleared[/yellow]")
-
-
-def get_host_info() -> str:
-    """Get and return localhost information.
-
-    Returns:
-        Formatted string with hostname, IP address, and localhost.
-
-    Raises:
-        socket.error: If unable to retrieve host information.
-    """
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    localhost = socket.gethostbyname("localhost")
-    return f"Hostname: {hostname}\nLocal IP: {ip_address}\nLocalhost: {localhost}"

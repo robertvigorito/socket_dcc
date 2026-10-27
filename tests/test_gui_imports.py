@@ -7,7 +7,8 @@ def test_gui_compatibility_entry_point_uses_canonical_window() -> None:
     Returns:
         None: This test compares the compatibility export with the canonical class.
     """
-    from socket_dcc.core.gui import MainWindow as canonical_window
     from socket_dcc.gui import MainWindow as compatibility_window
+
+    from socket_dcc.core.gui import MainWindow as canonical_window
 
     assert compatibility_window is canonical_window

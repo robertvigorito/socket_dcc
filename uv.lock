@@ -1394,6 +1394,7 @@ dependencies = [
     { name = "qt-py" },
     { name = "rich" },
     { name = "typer" },
+    { name = "types-nuke" },
 ]
 
 [package.dev-dependencies]
@@ -1416,6 +1417,7 @@ requires-dist = [
     { name = "qt-py", specifier = ">=1.4.1" },
     { name = "rich", specifier = ">=13.7" },
     { name = "typer", specifier = ">=0.12" },
+    { name = "types-nuke", specifier = ">=13.2.8.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1463,6 +1465,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/03/51/d33db42cc72ffd8c30777547b42d01f0cbf9d95a770457698d0174b3ed71/typer-0.27.3.tar.gz", hash = "sha256:d0396f770a560ab1b0a8504e13b5f254b728cedb05c61cf0359e944e50ce8901", size = 205303, upload-time = "2026-10-06T17:24:16.61Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/ea/2e31b67051e91a133189e9c000c222502ddc6969856416de0d095de4c0b0/typer-0.27.3-py3-none-any.whl", hash = "sha256:e50022f28b82a86313e54501317a1db64bf8f8d036ff8cfe5ca7e47675454aff", size = 123312, upload-time = "2026-10-06T17:24:15.054Z" },
+]
+
+[[package]]
+name = "types-nuke"
+version = "13.2.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/48/580f792f90ccd2124035d4bf9c3105cab64af509940693f17de9cfef2350/types_nuke-13.2.8.0.tar.gz", hash = "sha256:27626454c7d0bef1d3f4580f1e88c818cf9330186af538bd1ee5f48cc4c2cf67", size = 16447, upload-time = "2023-06-30T00:38:31.199Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/c4/a7fffabbfab1113d74b295f6cf55c80715f1e18755d2dc4a43e6b51d8b02/types_nuke-13.2.8.0-py2.py3-none-any.whl", hash = "sha256:ea3aecb23c154204ff4f061077f13032ba9c67b09c019f1bf7df517633b56360", size = 20397, upload-time = "2023-06-30T00:38:29.523Z" },
 ]
 
 [[package]]

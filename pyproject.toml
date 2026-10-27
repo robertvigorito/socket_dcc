@@ -9,10 +9,11 @@ dependencies = [
     "python-dotenv>=1.0",
     "rich>=13.7",
     "typer>=0.12",
+    "types-nuke>=13.2.8.0",
 ]
 
 [project.scripts]
-socket-dcc = "socket_dcc.cli:main"
+socket-dcc = "socket_dcc.cli.initiate:main"
 
 [project.urls]
 Homepage = "https://github.com/robertvigorito/socket_dcc"

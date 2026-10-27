@@ -16,6 +16,7 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
         None: This test asserts the default menu and pane states.
     """
     app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    Qt.QtCore.QSettings("socket-dcc", "socket-dcc").clear()
     window = MainWindow()
 
     assert window.show_log_action.isChecked()
@@ -23,9 +24,26 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
     assert not window.log_output.isHidden()
     assert not window.submitted_code.isHidden()
     assert window.token_input.text()
-    assert "#d99b2b" in window.connect_button.styleSheet()
+    assert window.port_input.objectName() == "portInput"
+    assert "QSpinBox#portInput" in window.styleSheet()
+    assert (
+        "QSpinBox#portInput, QLineEdit#tokenInput { background-color: transparent; border: none; }"
+        in window.styleSheet()
+    )
+    assert (
+        "QPushButton#copyHostButton, QPushButton#copyTokenButton "
+        "{ background-color: transparent; border: none; color: #dddddd; }" in window.styleSheet()
+    )
+    assert "QPushButton#copyTokenButton" in window.styleSheet()
     assert window.auto_disconnect_action.isCheckable()
     assert window.auto_close_action.isCheckable()
+    assert window.always_on_top_action.isCheckable()
+
+    topmost_flag = getattr(Qt.QtCore.Qt, "WindowStaysOnTopHint")
+    window.always_on_top_action.setChecked(True)
+    assert window.windowFlags() & topmost_flag
+    window.always_on_top_action.setChecked(False)
+    assert not window.windowFlags() & topmost_flag
 
     window.show_log_action.setChecked(False)
     assert window.log_output.isHidden()
@@ -33,6 +51,42 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
     assert not window.log_output.isHidden()
 
     window.close()
+    app.processEvents()
+
+
+def test_menu_settings_are_saved_and_restored() -> None:
+    """Verify checkable menu settings survive a window close and reopen.
+
+    Returns:
+        None: Asserts menu state is restored from saved values.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    settings = Qt.QtCore.QSettings("socket-dcc", "socket-dcc")
+    settings.clear()
+
+    window = MainWindow()
+    window._idle_timeout_seconds = 900
+    window.auto_disconnect_action.setChecked(True)
+    window.auto_close_action.setChecked(True)
+    window.show_log_action.setChecked(False)
+    window.show_code_action.setChecked(False)
+    window.append_code_action.setChecked(False)
+    window.always_on_top_action.setChecked(True)
+    window.close()
+    app.processEvents()
+
+    restored = MainWindow()
+    assert restored._idle_timeout_seconds == 900
+    assert restored.auto_disconnect_action.isChecked()
+    assert restored.auto_close_action.isChecked()
+    assert not restored.show_log_action.isChecked()
+    assert not restored.show_code_action.isChecked()
+    assert not restored.append_code_action.isChecked()
+    assert restored.always_on_top_action.isChecked()
+    assert restored.windowFlags() & getattr(Qt.QtCore.Qt, "WindowStaysOnTopHint")
+
+    restored.close()
+    settings.clear()
     app.processEvents()
 
 
@@ -161,14 +215,16 @@ def test_submitted_code_can_append_replace_and_clear(capsys) -> None:
     window._display_submitted_code("print('first')")
     window._display_submitted_code("print('second')")
     assert window.submitted_code.toPlainText() == "print('first')\nprint('second')\n"
-    assert "print('first')" in capsys.readouterr().out
+    terminal_output = capsys.readouterr().out
+    assert "print('first')" in terminal_output
+    assert "\x1b[" not in terminal_output
     assert "color: #f2f2f2" in window.submitted_code.styleSheet()
 
     window.append_code_action.setChecked(False)
     window._display_submitted_code("print('replacement')")
     assert window.submitted_code.toPlainText() == "print('replacement')"
 
-    window._clear_submitted_code()
+    window.submitted_code.clear()
     assert not window.submitted_code.toPlainText()
 
     window.close()

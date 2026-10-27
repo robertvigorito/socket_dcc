@@ -36,11 +36,3 @@ def test_send_code_to_socket_server(monkeypatch) -> None:
         assert received_code == [source]
     finally:
         server.stop()
-
-
-
-import nuke
-
-
-
-raise RuntimeError("This is an intentional exception for testing purposes.")

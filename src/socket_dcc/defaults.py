@@ -39,11 +39,16 @@ def load_default_environment() -> Path:
 
 
 def get_default_host() -> str:
-    """Return the same local interface address used by the GUI server.
+    """Return the configured host or the local interface address used by the GUI server.
 
     Returns:
-        str: The machine's resolved hostname address, or loopback if unavailable.
+        str: The configured host, machine's resolved hostname address, or loopback fallback.
     """
+    load_default_environment()
+    configured_host = os.environ.get("SOCKET_DCC_HOST")
+    if configured_host:
+        return configured_host
+
     try:
         return socket.gethostbyname(socket.gethostname())
     except OSError:
@@ -85,24 +90,32 @@ def get_default_settings() -> tuple[int, str]:
     return port, token
 
 
-def save_default_settings(port: int, token: str) -> None:
-    """Persist the active connection port and token for local clients.
+def save_default_settings(port: int | None = None, token: str | None = None, host: str | None = None) -> None:
+    """Persist the provided connection defaults for local clients.
 
     Args:
-        port: TCP port the server is listening on.
-        token: Authentication token accepted by the server.
+        port: Optional TCP port the server is listening on.
+        token: Optional authentication token accepted by the server.
+        host: Optional host used by local clients to reach the server.
 
     Returns:
-        None: Writes the defaults to the project .env and current process environment.
+        None: Writes provided defaults to the project .env and current process environment.
     """
-    if not 1 <= port <= 65535:
+    if port is not None and not 1 <= port <= 65535:
         raise ValueError("port must be between 1 and 65535")
-    if not token:
+    if token is not None and not token:
         raise ValueError("token cannot be empty")
+    if host is not None and not host.strip():
+        raise ValueError("host cannot be empty")
 
     env_path = get_env_path()
     env_path.parent.mkdir(parents=True, exist_ok=True)
-    set_key(str(env_path), "SOCKET_DCC_PORT", str(port))
-    set_key(str(env_path), "SOCKET_DCC_TOKEN", token)
-    os.environ["SOCKET_DCC_PORT"] = str(port)
-    os.environ["SOCKET_DCC_TOKEN"] = token
+    if port is not None:
+        set_key(str(env_path), "SOCKET_DCC_PORT", str(port))
+        os.environ["SOCKET_DCC_PORT"] = str(port)
+    if token is not None:
+        set_key(str(env_path), "SOCKET_DCC_TOKEN", token)
+        os.environ["SOCKET_DCC_TOKEN"] = token
+    if host is not None:
+        set_key(str(env_path), "SOCKET_DCC_HOST", host)
+        os.environ["SOCKET_DCC_HOST"] = host

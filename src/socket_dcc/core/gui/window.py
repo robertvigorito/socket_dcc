@@ -13,6 +13,16 @@ from socket_dcc.server import SocketExecutionServer
 
 console = Console()
 
+_MENU_SETTINGS = {
+    "idle_timeout": "menu/idle_timeout",
+    "auto_disconnect": "menu/auto_disconnect",
+    "auto_close": "menu/auto_close",
+    "show_log": "menu/show_log",
+    "show_code": "menu/show_code",
+    "append_code": "menu/append_code",
+    "always_on_top": "menu/always_on_top",
+}
+
 
 class MainWindow(Qt.QtWidgets.QMainWindow):
     """Small server connection window matching the socket-dcc reference UI."""
@@ -30,9 +40,6 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             token: Optional authentication token override.
         """
         super().__init__()
-        self.setWindowTitle("socket-dcc")
-        self.resize(940, 470)
-        self.setMinimumSize(940, 280)
         self.setStyleSheet(
             "QMainWindow, QWidget { background-color: #333333; color: #dddddd; }"
             "QMenuBar { background-color: #333333; color: #eeeeee; }"
@@ -42,25 +49,36 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             "QLabel { color: #dddddd; }"
             "QLabel#statusValue { color: #ffb13b; }"
             "QSpinBox, QLineEdit, QPushButton { background-color: #444444; border: 1px solid #555555; }"
+            "QSpinBox#portInput, QLineEdit#tokenInput { background-color: transparent; border: none; }"
+            "QPushButton#copyHostButton, QPushButton#copyTokenButton "
+            "{ background-color: transparent; border: none; color: #dddddd; }"
+            "QSpinBox#portInput:disabled, QLineEdit#tokenInput:disabled "
+            "{ background-color: transparent; border: none; color: #999999; }"
+            "QPushButton#copyHostButton:disabled, QPushButton#copyTokenButton:disabled "
+            "{ background-color: #3b3b3b; color: #999999; }"
             "QSpinBox, QLineEdit { padding: 2px 4px; }"
             "QPushButton { padding: 3px; }"
             "QPushButton:hover { background-color: #505050; }"
+            "QPushButton#copyHostButton:hover, QPushButton#copyTokenButton:hover "
+            "{ background-color: transparent; border: none; }"
+            "QPushButton#copyHostButton:disabled, QPushButton#copyTokenButton:disabled "
+            "{ background-color: transparent; border: none; color: #999999; }"
             "QPlainTextEdit { background-color: #252525; color: #dddddd; border: 1px solid #555555; }"
         )
 
         default_port, default_token = get_default_settings()
-        self._ip_address = host or self._get_local_ip()
+        self._ip_address = host or get_default_host()
         central, components = create_central_widget(self._ip_address, port or default_port)
         self.setCentralWidget(central)
-        self.status_value = components["status_value"]
-        self.ip_value = components["ip_value"]
-        self.copy_host_button = components["copy_host_button"]
-        self.port_input = components["port_input"]
-        self.token_input = components["token_input"]
-        self.copy_token_button = components["copy_token_button"]
-        self.connect_button = components["connect_button"]
-        self.log_output = components["log_output"]
-        self.submitted_code = components["submitted_code"]
+        self.status_value = components.status_value
+        self.ip_value = components.ip_value
+        self.copy_host_button = components.copy_host_button
+        self.port_input = components.port_input
+        self.token_input = components.token_input
+        self.copy_token_button = components.copy_token_button
+        self.connect_button = components.connect_button
+        self.log_output = components.log_output
+        self.submitted_code = components.submitted_code
 
         cast(Any, self.status_requested).connect(self._set_status)
         cast(Any, self.log_requested).connect(self._append_log)
@@ -81,20 +99,16 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.copy_host_button.clicked.connect(self._copy_host)
         self.copy_token_button.clicked.connect(self._copy_token)
         self._create_menus()
+        self.always_on_top_action.toggled.connect(self._toggle_always_on_top)
+        self.setWindowFlag(
+            getattr(Qt.QtCore.Qt, "WindowStaysOnTopHint"),
+            self.always_on_top_action.isChecked(),
+        )
         self._set_status("Idle")
 
         self.signal_timer = Qt.QtCore.QTimer(self)
         cast(Any, self.signal_timer.timeout).connect(self.check_signal)
         self.signal_timer.start(100)
-
-    @staticmethod
-    def _get_local_ip() -> str:
-        """Return the host's primary IPv4 address, falling back to loopback.
-
-        Returns:
-            str: The IP address to display and bind the server to.
-        """
-        return get_default_host()
 
     def _create_menus(self) -> None:
         """Create the Help and Settings menus shown in the reference UI.
@@ -105,6 +119,8 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         settings_menu = self.menuBar().addMenu("Settings")
         settings_menu.addAction("Refresh IP address", self._refresh_ip)
         settings_menu.addAction("Set idle timeout…", self._set_idle_timeout)
+        self.always_on_top_action = settings_menu.addAction("Always on top")
+        self.always_on_top_action.setCheckable(True)
         self.auto_disconnect_action = settings_menu.addAction("Auto-disconnect when idle")
         self.auto_disconnect_action.setCheckable(True)
         self.auto_disconnect_action.toggled.connect(self._toggle_auto_disconnect)
@@ -116,7 +132,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.show_log_action.setCheckable(True)
         self.show_log_action.setChecked(True)
         self.show_log_action.toggled.connect(self._toggle_log)
-        log_menu.addAction("Clear Log", self._clear_log)
+        log_menu.addAction("Clear Log", self.log_output.clear)
 
         code_menu = self.menuBar().addMenu("Code")
         self.show_code_action = code_menu.addAction("Show Submitted Code")
@@ -126,10 +142,57 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.append_code_action = code_menu.addAction("Append Submitted Code")
         self.append_code_action.setCheckable(True)
         self.append_code_action.setChecked(True)
-        code_menu.addAction("Clear Submitted Code", self._clear_submitted_code)
+        code_menu.addAction("Clear Submitted Code", self.submitted_code.clear)
+
+        self._load_menu_settings()
 
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction("About socket-dcc", self._show_about)
+
+    def _load_menu_settings(self) -> None:
+        """Restore checkable menu settings from the persistent store.
+
+        Returns:
+            None: Applies saved values or keeps the configured defaults.
+        """
+        settings = Qt.QtCore.QSettings("socket-dcc", "socket-dcc")
+        self._idle_timeout_seconds = settings.value(_MENU_SETTINGS["idle_timeout"], 600, type=int)
+        self.auto_disconnect_action.setChecked(settings.value(_MENU_SETTINGS["auto_disconnect"], False, type=bool))
+        self.auto_close_action.setChecked(settings.value(_MENU_SETTINGS["auto_close"], False, type=bool))
+        self.show_log_action.setChecked(settings.value(_MENU_SETTINGS["show_log"], True, type=bool))
+        self.show_code_action.setChecked(settings.value(_MENU_SETTINGS["show_code"], True, type=bool))
+        self.append_code_action.setChecked(settings.value(_MENU_SETTINGS["append_code"], True, type=bool))
+        self.always_on_top_action.setChecked(settings.value(_MENU_SETTINGS["always_on_top"], False, type=bool))
+
+    def _save_menu_settings(self) -> None:
+        """Save the current checkable menu settings.
+
+        Returns:
+            None: Writes the current menu state to persistent storage.
+        """
+        settings = Qt.QtCore.QSettings("socket-dcc", "socket-dcc")
+        settings.setValue(_MENU_SETTINGS["idle_timeout"], self._idle_timeout_seconds)
+        settings.setValue(_MENU_SETTINGS["auto_disconnect"], self.auto_disconnect_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["auto_close"], self.auto_close_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["show_log"], self.show_log_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["show_code"], self.show_code_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["append_code"], self.append_code_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["always_on_top"], self.always_on_top_action.isChecked())
+        settings.sync()
+
+    def _toggle_always_on_top(self, enabled: bool) -> None:
+        """Apply the always-on-top window hint when the setting changes.
+
+        Args:
+            enabled: Whether the panel should stay above other windows.
+
+        Returns:
+            None: Updates the window flags and refreshes the panel.
+        """
+        self.setWindowFlag(getattr(Qt.QtCore.Qt, "WindowStaysOnTopHint"), enabled)
+        self.show()
+        if enabled:
+            self.raise_()
 
     def _append_log(self, message: str) -> None:
         """Append a Rich-formatted message to the log panel.
@@ -142,14 +205,6 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         """
         append_log(self.log_output, message)
 
-    def _clear_log(self) -> None:
-        """Clear the log panel.
-
-        Returns:
-            None: Removes all displayed log messages.
-        """
-        self.log_output.clear()
-
     @Qt.QtCore.Slot(str)
     def _display_submitted_code(self, code: str) -> None:
         """Display source received from a socket client.
@@ -160,8 +215,8 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         Returns:
             None: Replaces or appends source in the submitted-code pane.
         """
-        console.print("Received code:", style="bold cyan")
-        console.print(code, style="bright_white", markup=False)
+        print("Received code:")
+        print(code, end="" if code.endswith("\n") else "\n")
         if self.append_code_action.isChecked():
             existing_code = self.submitted_code.toPlainText()
             if existing_code and not existing_code.endswith("\n"):
@@ -171,14 +226,6 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
                 self.submitted_code.insertPlainText("\n")
         else:
             self.submitted_code.setPlainText(code)
-
-    def _clear_submitted_code(self) -> None:
-        """Clear the submitted-code pane.
-
-        Returns:
-            None: Removes all displayed submitted source.
-        """
-        self.submitted_code.clear()
 
     def _toggle_code(self, visible: bool) -> None:
         """Show or hide the submitted-code pane.
@@ -219,7 +266,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         """
         if self.server.is_running:
             return
-        self._ip_address = self._get_local_ip()
+        self._ip_address = get_default_host()
         self.ip_value.setText(self._ip_address)
 
     def _copy_token(self) -> None:
@@ -259,7 +306,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             minutes = dialog.intValue()
             self._idle_timeout_seconds = minutes * 60
             if self.server.is_running and self.auto_disconnect_action.isChecked():
-                self._restart_idle_timer()
+                self.idle_timer.start(self._idle_timeout_seconds * 1000)
             self._append_log(f"Idle timeout set to {minutes} minute(s).")
 
     def _create_idle_timeout_dialog(self) -> Qt.QtWidgets.QInputDialog:
@@ -287,17 +334,9 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             None: Starts or stops the idle timer as appropriate.
         """
         if enabled and self.server.is_running:
-            self._restart_idle_timer()
+            self.idle_timer.start(self._idle_timeout_seconds * 1000)
         else:
             self.idle_timer.stop()
-
-    def _restart_idle_timer(self) -> None:
-        """Restart the configured inactivity timer.
-
-        Returns:
-            None: Arms the one-shot idle timer.
-        """
-        self.idle_timer.start(self._idle_timeout_seconds * 1000)
 
     @Qt.QtCore.Slot(str)
     def _record_socket_activity(self, _code: str) -> None:
@@ -310,7 +349,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             None: Restarts auto-disconnect timing when enabled.
         """
         if self.auto_disconnect_action.isChecked():
-            self._restart_idle_timer()
+            self.idle_timer.start(self._idle_timeout_seconds * 1000)
 
     def _disconnect_for_idle(self) -> None:
         """Disconnect the server after the configured idle period.
@@ -352,7 +391,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.token_input.setEnabled(False)
         self.port_input.setEnabled(False)
         if self.auto_disconnect_action.isChecked():
-            self._restart_idle_timer()
+            self.idle_timer.start(self._idle_timeout_seconds * 1000)
         self._append_log(f"[green]Listening on {self._ip_address}:{self.port_input.value()}[/green]")
         console.print(f"[green]Listening on {self._ip_address}:{self.port_input.value()}[/green]")
 
@@ -388,11 +427,6 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.status_value.setText(display)
         color = "#ffb13b" if display == "Idle" else "#76c77a" if display == "Connected" else "#ff6b6b"
         self.status_value.setStyleSheet(f"color: {color};")
-        button_color = "#d99b2b" if display == "Idle" else "#388e3c" if display == "Connected" else "#a83f3f"
-        self.connect_button.setStyleSheet(
-            f"QPushButton {{ background-color: {button_color}; border: 1px solid #666666; padding: 3px; }}"
-            "QPushButton:hover { background-color: #505050; }"
-        )
 
     def check_signal(self) -> None:
         """Stop the Qt event loop when a termination signal is received.
@@ -415,6 +449,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         Returns:
             None: Stops the server and accepts the close event.
         """
+        self._save_menu_settings()
         if self.server.is_running:
             self._disconnect_server("[yellow]Disconnected because the window is closing.[/yellow]")
         event.accept()
