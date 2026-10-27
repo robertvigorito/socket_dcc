@@ -2,6 +2,9 @@
 
 This guide explains how to connect your Windows PC and WSL 2 so you can run socket-dcc across both systems.
 
+Use `socket-dcc code` to send inline Python or the contents of a client-side `.py` file. Use
+`socket-dcc path` when the Python file is accessible to the server process and should be executed there.
+
 ## Overview
 
 WSL 2 uses Hyper-V virtualization, creating a separate virtual network for the Linux environment. To communicate between Windows and WSL, you need to:
@@ -53,7 +56,7 @@ Click "Get Host Info" in the GUI to see:
 **WSL side (CLI client):**
 ```bash
 # Replace 172.31.224.1 with your Windows IP from /etc/resolv.conf
-socket-dcc send /path/to/script.py --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
+socket-dcc code /path/to/script.py --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
 ```
 
 To run a script stored in WSL using the Windows GUI server, use `path --wsl` to convert the Linux path with
@@ -65,7 +68,7 @@ socket-dcc path /path/to/script.py --wsl --host 172.31.224.1 --port 5050 --token
 
 Or send code directly:
 ```bash
-socket-dcc send -c 'print("Hello from WSL")' --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
+socket-dcc code 'print("Hello from WSL")' --host 172.31.224.1 --port 5050 --token YOUR_TOKEN
 ```
 
 ### Scenario 2: GUI in WSL, CLI on Windows
@@ -80,12 +83,12 @@ socket-dcc send -c 'print("Hello from WSL")' --host 172.31.224.1 --port 5050 --t
 **Windows side (CLI client):**
 ```powershell
 # Replace 172.31.224.5 with your WSL IP from 'wsl hostname -I'
-socket-dcc send C:\path\to\script.py --host 172.31.224.5 --port 5050 --token YOUR_TOKEN
+socket-dcc code C:\path\to\script.py --host 172.31.224.5 --port 5050 --token YOUR_TOKEN
 ```
 
 Or send code directly:
 ```powershell
-socket-dcc send -c 'print("Hello from Windows")' --host 172.31.224.5 --port 5050 --token YOUR_TOKEN
+socket-dcc code 'print("Hello from Windows")' --host 172.31.224.5 --port 5050 --token YOUR_TOKEN
 ```
 
 ## Important: Binding to 0.0.0.0
@@ -113,11 +116,11 @@ Or temporarily in terminal:
 ```bash
 # WSL
 export SOCKET_DCC_TOKEN=your_token
-socket-dcc send /path/to/script.py --host 172.31.224.1 --port 5050
+socket-dcc code /path/to/script.py --host 172.31.224.1 --port 5050
 
 # Windows PowerShell
 $env:SOCKET_DCC_TOKEN="your_token"
-socket-dcc send C:\path\to\script.py --host 172.31.224.5 --port 5050
+socket-dcc code C:\path\to\script.py --host 172.31.224.5 --port 5050
 ```
 
 ## Firewall Considerations
@@ -203,7 +206,7 @@ cat /etc/resolv.conf | grep nameserver
 ```bash
 # 3. From WSL, send a test command
 export SOCKET_DCC_TOKEN="your_token_here"
-socket-dcc send -c 'print("Success!")' --host 172.31.224.1 --port 5050
+socket-dcc code 'print("Success!")' --host 172.31.224.1 --port 5050
 
 # 4. Check output in Windows GUI or terminal
 ```
@@ -211,5 +214,5 @@ socket-dcc send -c 'print("Success!")' --host 172.31.224.1 --port 5050
 ### Send a File
 ```bash
 # 5. From WSL, send a Python file
-socket-dcc send ~/my_script.py --host 172.31.224.1 --port 5050 --token your_token_here
+socket-dcc code ~/my_script.py --host 172.31.224.1 --port 5050 --token your_token_here
 ```

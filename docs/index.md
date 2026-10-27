@@ -13,11 +13,21 @@ uv sync
 
 ## Quick start
 
-Run the command-line application:
+Launch the GUI:
 
 ```sh
-uv run socket-dcc
+uv run socket-dcc show
 ```
+
+Use `uv run socket-dcc --help` to see the available commands. The `code` command sends inline Python or
+the contents of a local `.py` file; `path` runs a file by path in the server process.
+
+## Package layout
+
+The installable Python package is located in `src/socket_dcc/`. Its client, server, configuration
+defaults, and application interface are top-level modules. CLI commands are implemented in
+`src/socket_dcc/cli/`, and the modular GUI is in `src/socket_dcc/core/gui/`. The Nuke startup hooks
+under `src/nuke/` are separate from the Python package and are installed as Nuke files by the Rez build.
 ## Documentation development
 
 Preview the documentation locally with live reload:

@@ -15,9 +15,6 @@ dependencies = [
 [project.scripts]
 socket-dcc = "socket_dcc.cli.initiate:main"
 
-[project.urls]
-Homepage = "https://github.com/robertvigorito/socket_dcc"
-Repository = "https://github.com/robertvigorito/socket_dcc"
 
 [build-system]
 requires = ["hatchling"]
