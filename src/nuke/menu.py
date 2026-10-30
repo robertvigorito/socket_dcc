@@ -3,7 +3,6 @@
 import nukescripts  # noqa: I001 -- Nuke provides this host API module.
 
 import nuke
-import socket_dcc.interface  # noqa: I001 -- Explicit import for interface module.
 
 package_menu = (
     nuke.menu("Nuke")

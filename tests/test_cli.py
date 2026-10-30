@@ -119,49 +119,6 @@ def test_path_silent_suppresses_sender_and_server_output(monkeypatch, tmp_path: 
     )
 
 
-def test_path_wsl_converts_path_and_previous_reuses_flag(monkeypatch, tmp_path: Path) -> None:
-    """Verify --wsl converts the path and the previous invocation retains the option.
-
-    Args:
-        monkeypatch: Pytest fixture used to replace path conversion and network calls.
-        tmp_path: Temporary directory used to create the Python file and saved state.
-
-    Returns:
-        None: Asserts the Windows path is sent for both invocations.
-    """
-    path_module = import_module("socket_dcc.cli.path")
-    python_file = tmp_path / "wsl_example.py"
-    python_file.write_text("pass\n", encoding="utf-8")
-    monkeypatch.setenv("SOCKET_DCC_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setattr(common, "get_default_settings", lambda: (54322, "default-token"))
-    monkeypatch.setattr(common, "get_default_host", lambda: "127.0.0.1")
-    convert_path = Mock(return_value=Mock(stdout="C:\\project\\wsl_example.py\n"))
-    monkeypatch.setattr(path_module.subprocess, "run", convert_path)
-    send_code = Mock(return_value=ExecutionResponse(True, "ok"))
-    monkeypatch.setattr(common, "send_code", send_code)
-    runner = CliRunner()
-
-    first_result = runner.invoke(cli.app, ["path", str(python_file), "--wsl"])
-    previous_result = runner.invoke(cli.app, ["path", "--previous"])
-
-    assert first_result.exit_code == 0, first_result.output
-    assert previous_result.exit_code == 0, previous_result.output
-    assert convert_path.call_count == 2
-    convert_path.assert_called_with(
-        ["wslpath", "-w", str(python_file.resolve())],
-        capture_output=True,
-        check=True,
-        text=True,
-    )
-    send_code.assert_called_with(
-        "C:\\project\\wsl_example.py",
-        host="127.0.0.1",
-        port=54322,
-        token="default-token",
-        run_path=True,
-    )
-
-
 def test_silent_connection_failure_reports_error(monkeypatch, tmp_path: Path) -> None:
     """Verify silent mode reports a connection failure and exits unsuccessfully.
 

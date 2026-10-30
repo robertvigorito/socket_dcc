@@ -7,11 +7,13 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.syntax import Syntax
 
 from socket_dcc.client import send_code
 from socket_dcc.defaults import get_default_host, get_default_settings
 
 console = Console()
+error_console = Console(stderr=True)
 
 
 def previous_options_path(command: str) -> Path:
@@ -148,12 +150,14 @@ def send_to_default_server(
         return
 
     if not response.ok:
+        output = response.output.replace(r"\\wsl.localhost\Ubuntu", "").replace("\\", "/")
+        if response.raised:
+            error_console.print(Syntax(output, "pytb", theme="ansi_dark", background_color="default"))
+            raise typer.Exit(code=1)
         if not silent:
-            output = response.output
-            output = output.replace(r"\\wsl.localhost\Ubuntu", "")
-            output = output.replace("\\", "/")
             console.print(f"[red]Server rejected the request:[/red] {output}")
-        raise typer.Exit(code=1)
+        return
     if not silent:
-        title = "Output" if wait else "Request accepted"
-        console.print(Panel(response.output, title=title, expand=False))
+        if not wait:
+            console.print("Request accepted", style="green")
+        console.print(response.output, markup=False, highlight=False)

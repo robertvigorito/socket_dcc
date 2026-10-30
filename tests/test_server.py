@@ -64,3 +64,37 @@ def test_traceback_wsl_unc_paths_use_forward_slashes() -> None:
     normalized = _normalize_traceback_paths(output)
 
     assert "File '//wsl.localhost/Ubuntu/home/robert/script.py', line 7" in normalized
+
+
+def test_resolve_run_path_converts_mnt_path_on_windows(monkeypatch) -> None:
+    """Verify /mnt drive paths become Windows drive paths outside WSL.
+
+    Args:
+        monkeypatch: Pytest fixture used to fake the platform.
+
+    Returns:
+        None: Asserts the converted path.
+    """
+    from socket_dcc import server
+
+    monkeypatch.setattr(server.os, "name", "nt")
+    monkeypatch.setattr(server, "_is_wsl", lambda: False)
+
+    assert server._resolve_run_path("/mnt/c/proj/a.py") == "C:/proj/a.py"
+
+
+def test_resolve_run_path_unchanged_in_wsl(monkeypatch) -> None:
+    """Verify paths are untouched when the server runs inside WSL.
+
+    Args:
+        monkeypatch: Pytest fixture used to fake the platform.
+
+    Returns:
+        None: Asserts the path is unchanged.
+    """
+    from socket_dcc import server
+
+    monkeypatch.setattr(server.os, "name", "nt")
+    monkeypatch.setattr(server, "_is_wsl", lambda: True)
+
+    assert server._resolve_run_path("/mnt/c/proj/a.py") == "/mnt/c/proj/a.py"

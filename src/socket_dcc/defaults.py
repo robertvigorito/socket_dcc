@@ -3,6 +3,7 @@
 import os
 import secrets
 import socket
+from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv, set_key
@@ -38,6 +39,19 @@ def load_default_environment() -> Path:
     return env_path
 
 
+@lru_cache(maxsize=1)
+def _local_address() -> str:
+    """Resolve the local hostname address once, since the lookup can be slow.
+
+    Returns:
+        str: The resolved address or the loopback fallback.
+    """
+    try:
+        return socket.gethostbyname(socket.gethostname())
+    except OSError:
+        return DEFAULT_HOST
+
+
 def get_default_host(ignore_environment: bool = False) -> str:
     """Return the configured host or the local interface address used by the GUI server.
 
@@ -53,10 +67,7 @@ def get_default_host(ignore_environment: bool = False) -> str:
         if configured_host:
             return configured_host
 
-    try:
-        return socket.gethostbyname(socket.gethostname())
-    except OSError:
-        return DEFAULT_HOST
+    return _local_address()
 
 
 def generate_port() -> int:

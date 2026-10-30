@@ -5,15 +5,18 @@ import contextlib
 import io
 import json
 import os
+import platform
 import runpy
 import socketserver
 import threading
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
 from socket_dcc.defaults import get_default_settings
+
+_LAST_DISTRO: list[str] = []
 
 
 @dataclass(slots=True)
@@ -23,10 +26,12 @@ class ExecutionResponse:
     Attributes:
         ok: Whether the execution succeeded.
         output: Output or error message from execution.
+        raised: Whether the executed code raised an exception.
     """
 
     ok: bool
     output: str
+    raised: bool = False
 
 
 def _normalize_traceback_paths(output: str) -> str:
@@ -68,6 +73,64 @@ def _normalize_traceback_paths(output: str) -> str:
         normalized_path = path.replace("\\", "/")
         normalized_lines.append(f"{line[:marker]}File {normalized_path!r}{line[path_end + 1 :]}")
     return "".join(normalized_lines)
+
+
+def _is_wsl() -> bool:
+    """Check whether the current process is running inside WSL.
+
+    Returns:
+        bool: True when running inside WSL.
+    """
+    return "microsoft" in platform.release().lower() or bool(os.environ.get("WSL_DISTRO_NAME"))
+
+
+def _wsl_distros() -> Iterator[str]:
+    """Lazily yield candidate WSL distro names, most likely first.
+
+    The slow WSL share listing is only reached when the cheaper candidates are exhausted.
+
+    Returns:
+        Iterator[str]: Distros from the last match, environment, this module's UNC location, ``Ubuntu``, then the share.
+    """
+    if _LAST_DISTRO:
+        yield _LAST_DISTRO[0]
+    env_distro = os.environ.get("WSL_DISTRO_NAME")
+    if env_distro:
+        yield env_distro
+    parts = [part for part in __file__.replace("\\", "/").split("/") if part]
+    if len(parts) > 1 and parts[0].lower() in {"wsl.localhost", "wsl$"}:
+        yield parts[1]
+    yield "Ubuntu"
+    try:
+        yield from os.listdir("//wsl.localhost")
+    except OSError:
+        return
+
+
+def _resolve_run_path(path: str) -> str:
+    """Convert a WSL-style path to an existing Windows path when the server is not inside WSL.
+
+    ``/mnt/c/dir/file.py`` becomes ``C:/dir/file.py``. Other absolute POSIX paths are tried as
+    ``//wsl.localhost/<distro>/...`` for each candidate distro; the first existing file wins and its
+    distro is remembered for later calls.
+
+    Args:
+        path: Path received from the client.
+
+    Returns:
+        str: The first existing candidate, otherwise the ``Ubuntu`` UNC candidate.
+    """
+    if os.name != "nt" or _is_wsl() or not path.startswith("/"):
+        return path
+    parts = path.split("/")
+    if len(parts) > 2 and parts[1] == "mnt" and len(parts[2]) == 1 and parts[2].isalpha():
+        return f"{parts[2].upper()}:/{'/'.join(parts[3:])}"
+    for distro in _wsl_distros():
+        candidate = f"//wsl.localhost/{distro}{path}"
+        if Path(candidate).is_file():
+            _LAST_DISTRO[:] = [distro]
+            return candidate
+    return f"//wsl.localhost/Ubuntu{path}"
 
 
 class SocketExecutionServer:
@@ -182,7 +245,7 @@ class SocketExecutionServer:
                     self._send(response)
 
             def _send(self, response: ExecutionResponse) -> None:
-                payload = json.dumps({"ok": response.ok, "output": response.output}) + "\n"
+                payload = json.dumps({"ok": response.ok, "output": response.output, "raised": response.raised}) + "\n"
                 self.wfile.write(payload.encode("utf-8"))
                 self.wfile.flush()
 
@@ -221,10 +284,11 @@ class SocketExecutionServer:
             file_path: Path | None = None
             is_file = run_path
             if run_path:
-                file_path = Path(code.strip())
+                file_path = Path(_resolve_run_path(code.strip()))
             else:
                 try:
-                    file_path = Path(code.strip())
+                    stripped = code.strip()
+                    file_path = Path(_resolve_run_path(stripped) if "\n" not in stripped else stripped)
                     is_file = file_path.exists() and file_path.is_file() and file_path.suffix == ".py"
                 except (OSError, ValueError):
                     # OSError: file name too long (code is actually code, not a path)
@@ -257,7 +321,7 @@ class SocketExecutionServer:
                 stderr.write(_normalize_traceback_paths(output))
                 output = (stdout.getvalue() + stderr.getvalue()).rstrip()
                 self._log(output)
-                return ExecutionResponse(False, output)
+                return ExecutionResponse(False, output, raised=True)
 
             output = (stdout.getvalue() + stderr.getvalue()).rstrip()
             self._log(output or "Command executed.")

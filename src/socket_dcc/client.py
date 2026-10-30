@@ -7,6 +7,32 @@ from socket_dcc.defaults import get_default_host, get_default_settings
 from socket_dcc.server import ExecutionResponse
 
 
+def get_host_port_token(
+    host: str | None = None, port: int | None = None, token: str | None = None
+) -> tuple[str, int, str]:
+    """Get the host, port, and token, using defaults if necessary.
+
+    Args:
+        host: Server hostname or IP address. Defaults to the shared configured host.
+        port: Server port number. Defaults to the shared configured port.
+        token: Authentication token. Defaults to the shared configured token.
+
+    Returns:
+        A tuple containing the host, port, and token.
+    """
+    if host is None or port is None or token is None:
+        default_port, default_token = get_default_settings()
+        host = get_default_host() if host is None else host
+        port = default_port if port is None else port
+        token = default_token if token is None else token
+
+    assert host is not None
+    assert port is not None
+    assert token is not None
+
+    return host, port, token
+
+
 def send_code(
     code: str,
     host: str | None = None,
@@ -31,15 +57,7 @@ def send_code(
     Raises:
         socket.error: If connection to server fails.
     """
-    if host is None or port is None or token is None:
-        default_port, default_token = get_default_settings()
-        host = get_default_host() if host is None else host
-        port = default_port if port is None else port
-        token = default_token if token is None else token
-
-    assert host is not None
-    assert port is not None
-    assert token is not None
+    host, port, token = get_host_port_token(host, port, token)
 
     with socket.create_connection((host, port), timeout=3) as sock:
         # The connect timeout must not become a response timeout: execution can take
@@ -62,4 +80,8 @@ def send_code(
     except json.JSONDecodeError as exc:
         return ExecutionResponse(False, f"Invalid server response: {exc}")
 
-    return ExecutionResponse(bool(data.get("ok", False)), str(data.get("output", "")))
+    return ExecutionResponse(
+        bool(data.get("ok", False)),
+        str(data.get("output", "")),
+        raised=bool(data.get("raised", False)),
+    )
