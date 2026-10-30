@@ -38,16 +38,20 @@ def load_default_environment() -> Path:
     return env_path
 
 
-def get_default_host() -> str:
+def get_default_host(ignore_environment: bool = False) -> str:
     """Return the configured host or the local interface address used by the GUI server.
+
+    Args:
+        ignore_environment: If True, skip loading the .env and environment variables.
 
     Returns:
         str: The configured host, machine's resolved hostname address, or loopback fallback.
     """
-    load_default_environment()
-    configured_host = os.environ.get("SOCKET_DCC_HOST")
-    if configured_host:
-        return configured_host
+    if not ignore_environment:
+        load_default_environment()
+        configured_host = os.environ.get("SOCKET_DCC_HOST")
+        if configured_host:
+            return configured_host
 
     try:
         return socket.gethostbyname(socket.gethostname())

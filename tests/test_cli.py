@@ -33,6 +33,7 @@ def test_generic_test_uses_default_connection_settings(monkeypatch) -> None:
         host="127.0.0.1",
         port=54322,
         token="default-token",
+        wait=True,
     )
 
 
@@ -83,6 +84,7 @@ def test_path_sends_resolved_python_path_for_runpy(monkeypatch, tmp_path: Path) 
         host="127.0.0.1",
         port=54322,
         token="default-token",
+        run_path=True,
     )
 
 
@@ -113,6 +115,7 @@ def test_path_silent_suppresses_sender_and_server_output(monkeypatch, tmp_path: 
         host="127.0.0.1",
         port=54322,
         token="default-token",
+        run_path=True,
     )
 
 
@@ -150,7 +153,13 @@ def test_path_wsl_converts_path_and_previous_reuses_flag(monkeypatch, tmp_path: 
         check=True,
         text=True,
     )
-    send_code.assert_called_with("C:\\project\\wsl_example.py", host="127.0.0.1", port=54322, token="default-token")
+    send_code.assert_called_with(
+        "C:\\project\\wsl_example.py",
+        host="127.0.0.1",
+        port=54322,
+        token="default-token",
+        run_path=True,
+    )
 
 
 def test_silent_connection_failure_reports_error(monkeypatch, tmp_path: Path) -> None:
@@ -199,6 +208,7 @@ def test_code_command_sends_inline_python_code(monkeypatch, tmp_path: Path) -> N
             "code",
             source,
             "--no-silent",
+            "--wait",
             "--host",
             "192.168.1.50",
             "--port",
@@ -210,7 +220,7 @@ def test_code_command_sends_inline_python_code(monkeypatch, tmp_path: Path) -> N
 
     assert result.exit_code == 0, result.output
     assert "Sending Python code" in result.output
-    send_code.assert_called_once_with(source, host="192.168.1.50", port=45678, token="custom-token")
+    send_code.assert_called_once_with(source, host="192.168.1.50", port=45678, token="custom-token", wait=True)
 
 
 def test_code_command_reads_python_file_contents(monkeypatch, tmp_path: Path) -> None:
@@ -300,6 +310,7 @@ def test_path_previous_reuses_saved_file_and_connection_options(monkeypatch, tmp
         host="192.168.1.71",
         port=45680,
         token="path-token",
+        run_path=True,
     )
 
 

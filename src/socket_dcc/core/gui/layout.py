@@ -44,6 +44,9 @@ class CentralWidgetComponents:
     status_value: Qt.QtWidgets.QLabel
     ip_value: Qt.QtWidgets.QLabel
     copy_host_button: HoverIconButton
+    all_interfaces_button: Qt.QtWidgets.QPushButton
+    local_host_icon: Qt.QtGui.QIcon
+    all_interfaces_icon: Qt.QtGui.QIcon
     port_input: Qt.QtWidgets.QSpinBox
     token_input: Qt.QtWidgets.QLineEdit
     copy_token_button: HoverIconButton
@@ -82,6 +85,12 @@ def create_central_widget(ip_address: str, port: int) -> tuple[Qt.QtWidgets.QWid
     copy_host_button.setAccessibleName("Copy host")
     copy_host_button.setToolTip("Copy the server host to the clipboard")
     copy_host_button.setFixedSize(30, 30)
+    all_interfaces_button = Qt.QtWidgets.QPushButton()
+    all_interfaces_button.setObjectName("allInterfacesButton")
+    all_interfaces_button.setCheckable(True)
+    all_interfaces_button.setToolTip("Use 0.0.0.0 to listen on all interfaces")
+    all_interfaces_button.setAccessibleName("Toggle between local host and all interfaces")
+    all_interfaces_button.setFixedSize(30, 30)
     port_title = Qt.QtWidgets.QLabel("Port:")
     port_input = Qt.QtWidgets.QSpinBox()
     port_input.setObjectName("portInput")
@@ -128,17 +137,57 @@ def create_central_widget(ip_address: str, port: int) -> tuple[Qt.QtWidgets.QWid
         button.setIcon(normal_icon)
         button.setIconSize(Qt.QtCore.QSize(18, 18))
 
+    local_host_svg = Qt.QtCore.QByteArray(
+        b'<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">'
+        b'<path d="M24 44C24 44 39 32 39 19C39 10.7157 32.2843 4 24 4C15.7157 4 9 10.7157 '
+        b'9 19C9 32 24 44 24 44Z" fill="#707070" stroke="#dddddd" stroke-width="4" '
+        b'stroke-linejoin="round"/><path d="M24 25C27.3137 25 30 22.3137 30 19C30 15.6863 '
+        b'27.3137 13 24 13C20.6863 13 18 15.6863 18 19C18 22.3137 20.6863 25 24 25Z" '
+        b'fill="#333333" stroke="white" stroke-width="4" stroke-linejoin="round"/></svg>'
+    )
+    all_interfaces_svg = Qt.QtCore.QByteArray(
+        b'<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'
+        b'<path d="M33.9 21.676c-.553-.463-1.186-.695-1.9-.695s-1.352.232-1.912.695s-.994 '
+        b"1.293-1.303 2.49c-.405 1.553-.608 4.168-.608 7.846c0 3.675.182 6.203.546 "
+        b"7.578c.363 1.375.822 2.291 1.377 2.746c.553.457 1.186.684 1.9.684s1.352-.23 "
+        b"1.912-.693c.561-.465.994-1.295 1.303-2.492c.405-1.539.608-4.146.608-7.822c0-3.678-"
+        b'.182-6.203-.546-7.58c-.363-1.374-.822-2.294-1.377-2.757" fill="#dddddd"/>'
+        b'<path d="M32 2C15.432 2 2 15.432 2 32c0 16.568 13.432 30 30 30s30-13.432 30-30C62 '
+        b"15.432 48.568 2 32 2zm6.975 42.795C37.308 46.932 34.983 48 32 48c-2.997 0-5.414-"
+        b"1.172-7.248-3.516C22.918 42.139 22 37.961 22 31.948c0-5.9 1.009-10.146 3.025-12.74C"
+        b"26.692 17.071 29.017 16 32 16s5.315 1.082 6.996 3.25C40.999 21.815 42 26.069 42 "
+        b'32.012c0 5.927-1.009 10.189-3.025 12.783z" fill="#dddddd"/></svg>'
+    )
+    local_host_renderer = Qt.QtSvg.QSvgRenderer(local_host_svg)
+    local_host_pixmap = Qt.QtGui.QPixmap(24, 24)
+    local_host_pixmap.fill(getattr(Qt.QtCore.Qt, "transparent"))
+    local_host_painter = Qt.QtGui.QPainter(local_host_pixmap)
+    local_host_renderer.render(local_host_painter)
+    local_host_painter.end()
+    local_host_icon = Qt.QtGui.QIcon(local_host_pixmap)
+
+    all_interfaces_renderer = Qt.QtSvg.QSvgRenderer(all_interfaces_svg)
+    all_interfaces_pixmap = Qt.QtGui.QPixmap(24, 24)
+    all_interfaces_pixmap.fill(getattr(Qt.QtCore.Qt, "transparent"))
+    all_interfaces_painter = Qt.QtGui.QPainter(all_interfaces_pixmap)
+    all_interfaces_renderer.render(all_interfaces_painter)
+    all_interfaces_painter.end()
+    all_interfaces_icon = Qt.QtGui.QIcon(all_interfaces_pixmap)
+    all_interfaces_button.setIcon(local_host_icon)
+    all_interfaces_button.setIconSize(Qt.QtCore.QSize(24, 24))
+
     details_layout.addWidget(status_title, 0, 0, alignment=getattr(Qt.QtCore.Qt, "AlignRight"))
     details_layout.addWidget(status_value, 0, 1, alignment=getattr(Qt.QtCore.Qt, "AlignLeft"))
     details_layout.addWidget(ip_title, 1, 0, alignment=getattr(Qt.QtCore.Qt, "AlignRight"))
     details_layout.addWidget(ip_value, 1, 1, alignment=getattr(Qt.QtCore.Qt, "AlignLeft"))
     details_layout.addWidget(copy_host_button, 1, 2)
+    details_layout.addWidget(all_interfaces_button, 1, 3)
     details_layout.addWidget(port_title, 2, 0, alignment=getattr(Qt.QtCore.Qt, "AlignRight"))
     details_layout.addWidget(port_input, 2, 1, alignment=getattr(Qt.QtCore.Qt, "AlignLeft"))
     details_layout.addWidget(token_title, 3, 0, alignment=getattr(Qt.QtCore.Qt, "AlignRight"))
     details_layout.addWidget(token_input, 3, 1)
     details_layout.addWidget(copy_token_button, 3, 2)
-    details_layout.setColumnStretch(3, 1)
+    details_layout.setColumnStretch(4, 1)
 
     connect_button = Qt.QtWidgets.QPushButton("Connect")
     connect_button.setMinimumHeight(24)
@@ -168,6 +217,9 @@ def create_central_widget(ip_address: str, port: int) -> tuple[Qt.QtWidgets.QWid
         status_value=status_value,
         ip_value=ip_value,
         copy_host_button=copy_host_button,
+        all_interfaces_button=all_interfaces_button,
+        local_host_icon=local_host_icon,
+        all_interfaces_icon=all_interfaces_icon,
         port_input=port_input,
         token_input=token_input,
         copy_token_button=copy_token_button,

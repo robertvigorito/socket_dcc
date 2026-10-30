@@ -9,4 +9,4 @@ def test() -> None:
     Returns:
         None: Prints the server output or exits if the request fails.
     """
-    send_to_default_server('print("helloworld")', "Testing socket-dcc")
+    send_to_default_server('print("helloworld")', "Testing socket-dcc", wait=True)

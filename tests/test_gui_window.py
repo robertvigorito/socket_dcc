@@ -1,5 +1,6 @@
 """Tests for the GUI's optional log panel."""
 
+import errno
 from unittest.mock import Mock
 
 import pytest
@@ -31,13 +32,18 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
         in window.styleSheet()
     )
     assert (
-        "QPushButton#copyHostButton, QPushButton#copyTokenButton "
+        "QPushButton#copyHostButton, QPushButton#copyTokenButton, QPushButton#allInterfacesButton "
         "{ background-color: transparent; border: none; color: #dddddd; }" in window.styleSheet()
     )
+    assert "QPushButton#allInterfacesButton" in window.styleSheet()
+    assert "QPushButton#allInterfacesButton:hover" in window.styleSheet()
     assert "QPushButton#copyTokenButton" in window.styleSheet()
     assert window.auto_disconnect_action.isCheckable()
     assert window.auto_close_action.isCheckable()
     assert window.always_on_top_action.isCheckable()
+    assert window.all_interfaces_button.isCheckable()
+    assert not window.all_interfaces_button.icon().isNull()
+    assert window.all_interfaces_button.toolTip() == "Use 0.0.0.0 to listen on all interfaces"
 
     topmost_flag = getattr(Qt.QtCore.Qt, "WindowStaysOnTopHint")
     window.always_on_top_action.setChecked(True)
@@ -163,6 +169,32 @@ def test_connect_persists_active_port_and_token(monkeypatch: pytest.MonkeyPatch)
     app.processEvents()
 
 
+def test_all_interfaces_button_switches_bind_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify the all-interfaces button selects 0.0.0.0 and toggles back.
+
+    Args:
+        monkeypatch: Pytest fixture used to replace the detected local host.
+
+    Returns:
+        None: Asserts the button updates the displayed and selected bind address.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    monkeypatch.setattr(gui_window, "get_default_host", lambda: "192.168.1.25")
+    window = MainWindow()
+
+    window.all_interfaces_button.click()
+    assert window._ip_address == "0.0.0.0"
+    assert window.ip_value.text() == "0.0.0.0"
+    assert window.all_interfaces_button.toolTip() == "Use the local host address instead of 0.0.0.0"
+
+    window.all_interfaces_button.click()
+    assert window._ip_address == "192.168.1.25"
+    assert window.ip_value.text() == "192.168.1.25"
+    assert window.all_interfaces_button.toolTip() == "Use 0.0.0.0 to listen on all interfaces"
+    window.close()
+    app.processEvents()
+
+
 def test_copy_token_button_copies_current_token() -> None:
     """Verify the token copy button writes the current value to the clipboard.
 
@@ -247,5 +279,33 @@ def test_submitted_code_can_append_replace_and_clear(capsys) -> None:
     window.submitted_code.clear()
     assert not window.submitted_code.toPlainText()
 
+    window.close()
+    app.processEvents()
+
+
+def test_connect_with_unavailable_ip_suggests_valid_bind_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify an unavailable bind IP shows actionable address suggestions.
+
+    Args:
+        monkeypatch: Pytest fixture used to simulate a bind-address failure.
+
+    Returns:
+        None: Asserts the GUI displays localhost and all-interface alternatives.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    window = MainWindow(host="192.0.2.1")
+    monkeypatch.setattr(
+        window.server,
+        "start",
+        Mock(side_effect=OSError(errno.EADDRNOTAVAIL, "Cannot assign requested address")),
+    )
+
+    window._toggle_connection()
+
+    log_text = window.log_output.toPlainText()
+    assert "Cannot assign requested address" in log_text
+    assert "localhost for local connections" in log_text
+    assert "0.0.0.0 to listen on all interfaces" in log_text
+    assert window.status_value.text() == "Error"
     window.close()
     app.processEvents()

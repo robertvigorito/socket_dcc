@@ -97,6 +97,8 @@ def send_to_default_server(
     host: str | None = None,
     port: int | None = None,
     token: str | None = None,
+    run_path: bool = False,
+    wait: bool = False,
 ) -> None:
     """Send code to the configured socket server and report its result.
 
@@ -108,6 +110,8 @@ def send_to_default_server(
         host: Optional server host override.
         port: Optional server port override.
         token: Optional authentication token override.
+        run_path: Whether the payload is a file path to execute with runpy.
+        wait: Whether to wait for the execution result rather than an acceptance response.
 
     Returns:
         None: Prints the response or exits with a failure status.
@@ -120,7 +124,12 @@ def send_to_default_server(
         console.print(f"  [cyan]Port:[/cyan] {port}")
 
     try:
-        response = send_code(code, host=host, port=port, token=token)
+        send_options: dict[str, bool] = {}
+        if run_path:
+            send_options["run_path"] = True
+        if wait:
+            send_options["wait"] = True
+        response = send_code(code, host=host, port=port, token=token, **send_options)
     except OSError as exc:
         typer.echo(
             f"Could not connect to socket-dcc at {host}:{port}. "
@@ -146,4 +155,5 @@ def send_to_default_server(
             console.print(f"[red]Server rejected the request:[/red] {output}")
         raise typer.Exit(code=1)
     if not silent:
-        console.print(Panel(response.output, title="Output", expand=False))
+        title = "Output" if wait else "Request accepted"
+        console.print(Panel(response.output, title=title, expand=False))

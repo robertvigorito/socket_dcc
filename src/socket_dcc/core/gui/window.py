@@ -1,5 +1,6 @@
 """Main window for the socket-dcc connection panel."""
 
+import errno
 from typing import Any, cast
 
 import Qt
@@ -50,7 +51,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             "QLabel#statusValue { color: #ffb13b; }"
             "QSpinBox, QLineEdit, QPushButton { background-color: #444444; border: 1px solid #555555; }"
             "QSpinBox#portInput, QLineEdit#tokenInput { background-color: transparent; border: none; }"
-            "QPushButton#copyHostButton, QPushButton#copyTokenButton "
+            "QPushButton#copyHostButton, QPushButton#copyTokenButton, QPushButton#allInterfacesButton "
             "{ background-color: transparent; border: none; color: #dddddd; }"
             "QSpinBox#portInput:disabled, QLineEdit#tokenInput:disabled "
             "{ background-color: transparent; border: none; color: #999999; }"
@@ -59,20 +60,26 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             "QSpinBox, QLineEdit { padding: 2px 4px; }"
             "QPushButton { padding: 3px; }"
             "QPushButton:hover { background-color: #505050; }"
-            "QPushButton#copyHostButton:hover, QPushButton#copyTokenButton:hover "
+            "QPushButton#copyHostButton:hover, QPushButton#copyTokenButton:hover, "
+            "QPushButton#allInterfacesButton:hover "
             "{ background-color: transparent; border: none; }"
-            "QPushButton#copyHostButton:disabled, QPushButton#copyTokenButton:disabled "
+            "QPushButton#copyHostButton:disabled, QPushButton#copyTokenButton:disabled, "
+            "QPushButton#allInterfacesButton:disabled "
             "{ background-color: transparent; border: none; color: #999999; }"
             "QPlainTextEdit { background-color: #252525; color: #dddddd; border: 1px solid #555555; }"
         )
 
         default_port, default_token = get_default_settings()
         self._ip_address = host or get_default_host()
+        self._default_bind_address = self._ip_address
         central, components = create_central_widget(self._ip_address, port or default_port)
         self.setCentralWidget(central)
         self.status_value = components.status_value
         self.ip_value = components.ip_value
         self.copy_host_button = components.copy_host_button
+        self.all_interfaces_button = components.all_interfaces_button
+        self._local_host_icon = components.local_host_icon
+        self._all_interfaces_icon = components.all_interfaces_icon
         self.port_input = components.port_input
         self.token_input = components.token_input
         self.copy_token_button = components.copy_token_button
@@ -98,6 +105,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.connect_button.clicked.connect(self._toggle_connection)
         self.copy_host_button.clicked.connect(self._copy_host)
         self.copy_token_button.clicked.connect(self._copy_token)
+        cast(Any, self.all_interfaces_button.toggled).connect(self._toggle_all_interfaces)
         self._create_menus()
         self.always_on_top_action.toggled.connect(self._toggle_always_on_top)
         self.setWindowFlag(
@@ -275,8 +283,30 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         """
         if self.server.is_running:
             return
-        self._ip_address = get_default_host()
+        self._default_bind_address = get_default_host()
+        if self.all_interfaces_button.isChecked():
+            self.all_interfaces_button.setChecked(False)
+        else:
+            self._ip_address = self._default_bind_address
+            self.ip_value.setText(self._ip_address)
+
+    def _toggle_all_interfaces(self, enabled: bool) -> None:
+        """Switch the server bind address between the default and all interfaces.
+
+        Args:
+            enabled: Whether to bind on all local network interfaces.
+
+        Returns:
+            None: Updates the server host shown in the connection panel.
+        """
+        self._ip_address = "0.0.0.0" if not enabled else get_default_host(ignore_environment=True)
         self.ip_value.setText(self._ip_address)
+        if enabled:
+            self.all_interfaces_button.setIcon(self._all_interfaces_icon)
+            self.all_interfaces_button.setToolTip("Use the local host address instead of 0.0.0.0")
+        else:
+            self.all_interfaces_button.setIcon(self._local_host_icon)
+            self.all_interfaces_button.setToolTip("Use 0.0.0.0 to listen on all interfaces")
 
     def _copy_token(self) -> None:
         """Copy the current authentication token to the system clipboard.
@@ -391,7 +421,11 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             self.server.start(self._ip_address, self.port_input.value())
         except OSError as exc:
             self._set_status("Error")
-            console.print(f"[red]Failed to connect: {exc}[/red]")
+            message = f"Failed to connect: {exc}"
+            if exc.errno == errno.EADDRNOTAVAIL:
+                message += ". Use localhost for local connections or 0.0.0.0 to listen on all interfaces."
+            self._append_log(f"[red]{message}[/red]")
+            console.print(f"[red]{message}[/red]")
             return
 
         save_default_settings(self.port_input.value(), token)
@@ -400,6 +434,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.connect_button.setText("Disconnect")
         self.token_input.setEnabled(False)
         self.port_input.setEnabled(False)
+        self.all_interfaces_button.setEnabled(False)
         if self.auto_disconnect_action.isChecked():
             self.idle_timer.start(self._idle_timeout_seconds * 1000)
         self._append_log(f"[green]Listening on {self._ip_address}:{self.port_input.value()}[/green]")
@@ -421,6 +456,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.connect_button.setText("Connect")
         self.token_input.setEnabled(True)
         self.port_input.setEnabled(True)
+        self.all_interfaces_button.setEnabled(True)
         if self.auto_close_action.isChecked():
             self.close()
 

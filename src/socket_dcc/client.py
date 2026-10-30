@@ -12,6 +12,8 @@ def send_code(
     host: str | None = None,
     port: int | None = None,
     token: str | None = None,
+    run_path: bool = False,
+    wait: bool = False,
 ) -> ExecutionResponse:
     """Send code to the server for remote execution.
 
@@ -20,6 +22,8 @@ def send_code(
         host: Server hostname or IP address.
         port: Server port number. Defaults to the shared configured port.
         token: Authentication token. Defaults to the shared configured token.
+        run_path: Whether the payload is a file path to execute with runpy.
+        wait: Whether to wait for execution output instead of an immediate acknowledgement.
 
     Returns:
         ExecutionResponse: Contains execution status and output.
@@ -38,7 +42,14 @@ def send_code(
     assert token is not None
 
     with socket.create_connection((host, port), timeout=3) as sock:
-        payload = json.dumps({"code": code, "token": token}) + "\n"
+        # The connect timeout must not become a response timeout: execution can take
+        # longer than three seconds, especially when running a file remotely.
+        sock.settimeout(None)
+        request: dict[str, str | bool] = {"code": code, "token": token}
+        if run_path:
+            request["mode"] = "path"
+        request["wait"] = wait
+        payload = json.dumps(request) + "\n"
         sock.sendall(payload.encode("utf-8"))
         with sock.makefile("r", encoding="utf-8") as stream:
             response = stream.readline()

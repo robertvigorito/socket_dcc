@@ -15,6 +15,11 @@ from socket_dcc.cli.common import (
 def send_code_command(
     source: str | None = typer.Argument(None, help="Python code to send, or a path to a local Python file."),
     previous: bool = typer.Option(False, "--previous", help="Repeat the last code command invocation."),
+    wait: bool | None = typer.Option(
+        None,
+        "--wait/--no-wait",
+        help="Wait for execution to finish and return its output (default: return immediately).",
+    ),
     silent: bool | None = typer.Option(None, "--silent/--no-silent", help="Suppress all output from this command."),
     host: str | None = typer.Option(None, "--host", help="Override the configured server host."),
     port: int | None = typer.Option(None, "--port", help="Override the configured server port."),
@@ -25,6 +30,7 @@ def send_code_command(
     Args:
         source: Python code, or a path to an existing .py file whose contents should be sent.
         previous: Whether to reuse the last source and connection options.
+        wait: Whether to wait for the remote execution result.
         silent: Whether to suppress sender-side output; defaults to True for a new invocation.
         host: Optional server host override.
         port: Optional server port override.
@@ -60,6 +66,7 @@ def send_code_command(
         title = "Sending Python code"
 
     selected_silent = silent if silent is not None else bool(saved.get("silent", True)) if previous else True
+    selected_wait = wait if wait is not None else bool(saved.get("wait", False)) if previous else False
     selected_host: str | None = host
     selected_port: int | None = port
     selected_token: str | None = token
@@ -83,6 +90,7 @@ def send_code_command(
         {
             "source": selected_source,
             "silent": selected_silent,
+            "wait": selected_wait,
             "host": selected_host,
             "port": selected_port,
             "token": selected_token,
@@ -95,4 +103,5 @@ def send_code_command(
         host=selected_host,
         port=selected_port,
         token=selected_token,
+        wait=selected_wait,
     )

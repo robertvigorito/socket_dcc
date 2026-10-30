@@ -21,6 +21,11 @@ def run_path(
         "--wsl/--no-wsl",
         help="Convert the file path to a Windows path with wslpath.",
     ),
+    wait: bool | None = typer.Option(
+        None,
+        "--wait/--no-wait",
+        help="Wait for execution to finish and return its output (default: return immediately).",
+    ),
     silent: bool | None = typer.Option(None, "--silent/--no-silent", help="Suppress all output from this command."),
     host: str | None = typer.Option(None, "--host", help="Override the configured server host."),
     port: int | None = typer.Option(None, "--port", help="Override the configured server port."),
@@ -32,6 +37,7 @@ def run_path(
         file: Python file accessible to the server process.
         previous: Whether to reuse the last path and connection options.
         wsl: Whether to convert the path to its Windows form using wslpath.
+        wait: Whether to wait for the remote execution result.
         silent: Whether to suppress sender-side output; defaults to True for a new invocation.
         host: Optional server host override.
         port: Optional server port override.
@@ -43,6 +49,7 @@ def run_path(
     Raises:
         typer.BadParameter: If the path is not an existing Python file.
     """
+
     if previous and file is not None:
         raise typer.BadParameter("Do not provide a file when using --previous.")
     if not previous and file is None:
@@ -79,6 +86,7 @@ def run_path(
             raise typer.BadParameter(f"wslpath returned an empty Windows path for {file_path}.")
 
     selected_silent = silent if silent is not None else bool(saved.get("silent", True)) if previous else True
+    selected_wait = wait if wait is not None else bool(saved.get("wait", False)) if previous else False
     selected_host: str | None = host
     selected_port: int | None = port
     selected_token: str | None = token
@@ -101,6 +109,7 @@ def run_path(
         "file": str(file_path),
         "wsl": selected_wsl,
         "silent": selected_silent,
+        "wait": selected_wait,
         "host": selected_host,
         "port": selected_port,
         "token": selected_token,
@@ -113,4 +122,6 @@ def run_path(
         host=selected_host,
         port=selected_port,
         token=selected_token,
+        run_path=True,
+        wait=selected_wait,
     )

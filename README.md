@@ -22,6 +22,10 @@ The command-line app also provides `code` to send inline Python or the contents 
 `path` to ask the server process to execute a Python file accessible to it. Use `socket-dcc --help` or
 `socket-dcc <command> --help` for command options.
 
+Code and path requests return as soon as the server accepts them; the server continues executing and
+displays the eventual output or errors in its GUI log. Add `--wait` to either command when the caller
+needs to wait for completion and receive the execution output.
+
 On first launch, socket-dcc generates a shared port and authentication token and stores them in the
 project `.env` file. The GUI uses these values as its defaults. The CLI uses them automatically, so a
 local send can omit both options:

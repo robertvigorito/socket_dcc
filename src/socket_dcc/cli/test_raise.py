@@ -13,4 +13,5 @@ def test_raise() -> None:
         'raise ValueError("Test exception")',
         "Testing socket-dcc error handling",
         expected_error="ValueError: Test exception",
+        wait=True,
     )

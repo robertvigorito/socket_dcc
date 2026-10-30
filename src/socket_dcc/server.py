@@ -155,8 +155,17 @@ class SocketExecutionServer:
                     request = json.loads(raw.decode("utf-8"))
                     code = str(request["code"])
                     token = str(request["token"])
+                    mode = request.get("mode", "code")
+                    wait = request.get("wait", True)
                 except (KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
                     self._send(ExecutionResponse(False, f"Invalid request: {exc}"))
+                    return
+
+                if not isinstance(mode, str) or mode not in {"code", "path"}:
+                    self._send(ExecutionResponse(False, f"Invalid execution mode: {mode}"))
+                    return
+                if not isinstance(wait, bool):
+                    self._send(ExecutionResponse(False, "Invalid wait setting"))
                     return
 
                 if token != server.auth_token:
@@ -166,8 +175,11 @@ class SocketExecutionServer:
                 if server._code_received_callback is not None:
                     server._code_received_callback(code)
 
-                response = server.execute(code)
-                self._send(response)
+                if not wait:
+                    self._send(ExecutionResponse(True, "Execution started."))
+                response = server.execute(code, run_path=mode == "path")
+                if wait:
+                    self._send(response)
 
             def _send(self, response: ExecutionResponse) -> None:
                 payload = json.dumps({"ok": response.ok, "output": response.output}) + "\n"
@@ -189,7 +201,7 @@ class SocketExecutionServer:
         self._thread = None
         self._status("Server stopped")
 
-    def execute(self, code: str) -> ExecutionResponse:
+    def execute(self, code: str, run_path: bool = False) -> ExecutionResponse:
         """Execute Python code or file in a protected environment.
 
         If code is a valid file path, executes it as a module using runpy.
@@ -197,6 +209,7 @@ class SocketExecutionServer:
 
         Args:
             code: Python code to execute or path to a Python file.
+            run_path: Whether to treat the payload as a path without code detection.
 
         Returns:
             ExecutionResponse: Execution status and output/error message.
@@ -205,16 +218,18 @@ class SocketExecutionServer:
             stdout = io.StringIO()
             stderr = io.StringIO()
 
-            # Check if code is a file path
-            is_file = False
-            file_path = None
-            try:
+            file_path: Path | None = None
+            is_file = run_path
+            if run_path:
                 file_path = Path(code.strip())
-                is_file = file_path.exists() and file_path.is_file() and file_path.suffix == ".py"
-            except (OSError, ValueError):
-                # OSError: file name too long (code is actually code, not a path)
-                # ValueError: invalid path characters
-                pass
+            else:
+                try:
+                    file_path = Path(code.strip())
+                    is_file = file_path.exists() and file_path.is_file() and file_path.suffix == ".py"
+                except (OSError, ValueError):
+                    # OSError: file name too long (code is actually code, not a path)
+                    # ValueError: invalid path characters
+                    pass
 
             try:
                 with (
