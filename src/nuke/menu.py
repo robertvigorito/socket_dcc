@@ -3,6 +3,7 @@
 import nukescripts  # noqa: I001 -- Nuke provides this host API module.
 
 import nuke
+import socket_dcc.interface  # noqa: F401 # Hard requirement for panel registration
 
 package_menu = (
     nuke.menu("Nuke")
@@ -12,3 +13,6 @@ package_menu = (
 
 
 nukescripts.panels.registerWidgetAsPanel("socket_dcc.interface.MainWindow", "Socket DCC Panel", "com.wgid.socket_dcc")
+
+
+raise NotImplementedError("Additional menu setup not implemented.")
