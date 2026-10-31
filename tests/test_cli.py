@@ -379,6 +379,37 @@ def test_info_prints_all_environment_file_contents(monkeypatch, tmp_path: Path) 
     assert contents in result.output
 
 
+def test_info_prints_previous_invocation_options(monkeypatch, tmp_path: Path) -> None:
+    """Verify info shows saved connection details without exposing the token.
+
+    Args:
+        monkeypatch: Pytest fixture used to isolate config and previous state.
+        tmp_path: Pytest fixture used to create temporary files.
+
+    Returns:
+        None: Asserts saved host/port are shown and the token is masked.
+    """
+    env_file = tmp_path / ".env"
+    env_file.write_text("SOCKET_DCC_HOST=localhost\n", encoding="utf-8")
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    (state_dir / "last-path.json").write_text(
+        '{"file":"/tmp/script.py","host":"127.0.0.1","port":54321,"token":"secret"}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("SOCKET_DCC_ENV_FILE", str(env_file))
+    monkeypatch.setenv("SOCKET_DCC_STATE_DIR", str(state_dir))
+
+    result = CliRunner().invoke(cli.app, ["info"])
+
+    assert result.exit_code == 0, result.output
+    assert "Previous path invocation:" in result.output
+    assert "host: 127.0.0.1" in result.output
+    assert "port: 54321" in result.output
+    assert "token: ********" in result.output
+    assert "secret" not in result.output
+
+
 def test_info_reports_missing_environment_file(monkeypatch, tmp_path: Path) -> None:
     """Verify info exits with an error when the environment file is missing.
 

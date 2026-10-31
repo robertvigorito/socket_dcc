@@ -86,6 +86,8 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.connect_button = components.connect_button
         self.log_output = components.log_output
         self.submitted_code = components.submitted_code
+        self._add_clear_context_menu(self.log_output)
+        self._add_clear_context_menu(self.submitted_code)
 
         cast(Any, self.status_requested).connect(self._set_status)
         cast(Any, self.log_requested).connect(self._append_log)
@@ -165,6 +167,35 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
 
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction("About socket-dcc", self._show_about)
+
+    def _add_clear_context_menu(self, text_widget: Any) -> None:
+        """Extend a text editor's standard right-click menu with a Clear action.
+
+        Args:
+            text_widget: Log or submitted-code text editor.
+
+        Returns:
+            None: Connects the editor's custom context-menu signal.
+        """
+        text_widget.setContextMenuPolicy(getattr(Qt.QtCore.Qt, "CustomContextMenu"))
+        cast(Any, text_widget.customContextMenuRequested).connect(
+            lambda position: self._show_clear_context_menu(text_widget, position)
+        )
+
+    def _show_clear_context_menu(self, text_widget: Any, position: Any) -> None:
+        """Show the standard editor context menu with an additional Clear action.
+
+        Args:
+            text_widget: Log or submitted-code text editor.
+            position: Context-menu position in editor coordinates.
+
+        Returns:
+            None: Displays the context menu.
+        """
+        menu = text_widget.createStandardContextMenu()
+        menu.addSeparator()
+        menu.addAction("Clear", text_widget.clear)
+        menu.exec(text_widget.mapToGlobal(position))
 
     def _load_menu_settings(self) -> None:
         """Restore checkable menu settings from the persistent store.

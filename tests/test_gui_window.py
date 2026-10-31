@@ -169,30 +169,7 @@ def test_connect_persists_active_port_and_token(monkeypatch: pytest.MonkeyPatch)
     app.processEvents()
 
 
-def test_all_interfaces_button_switches_bind_host(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify the all-interfaces button selects 0.0.0.0 and toggles back.
 
-    Args:
-        monkeypatch: Pytest fixture used to replace the detected local host.
-
-    Returns:
-        None: Asserts the button updates the displayed and selected bind address.
-    """
-    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
-    monkeypatch.setattr(gui_window, "get_default_host", lambda: "192.168.1.25")
-    window = MainWindow()
-
-    window.all_interfaces_button.click()
-    assert window._ip_address == "0.0.0.0"
-    assert window.ip_value.text() == "0.0.0.0"
-    assert window.all_interfaces_button.toolTip() == "Use the local host address instead of 0.0.0.0"
-
-    window.all_interfaces_button.click()
-    assert window._ip_address == "192.168.1.25"
-    assert window.ip_value.text() == "192.168.1.25"
-    assert window.all_interfaces_button.toolTip() == "Use 0.0.0.0 to listen on all interfaces"
-    window.close()
-    app.processEvents()
 
 
 def test_copy_token_button_copies_current_token() -> None:

@@ -3,6 +3,7 @@
 import nukescripts  # noqa: I001 -- Nuke provides this host API module.
 
 import nuke
+import socket_dcc.interface  # noqa: F401 # Hard requirement for panel registration
 
 package_menu = (
     nuke.menu("Nuke")
