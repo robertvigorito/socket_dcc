@@ -43,6 +43,9 @@ Stop a headless server remotely with `socket-dcc close` (or `socket-dcc-close`),
 host, port, and token as the server. Remote shutdown is enabled only on the headless runner; GUI servers
 continue to be stopped from their panel.
 
+In the GUI, enable **Log → Clear Log Before New Send** to clear previous log entries when each new code
+or path request arrives. The setting is off by default and is saved between sessions.
+
 Code and path requests return as soon as the server accepts them; the server continues executing and
 displays the eventual output or errors in its GUI log. Add `--wait` to either command when the caller
 needs to wait for completion and receive the execution output.

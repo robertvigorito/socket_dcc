@@ -21,6 +21,7 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
     window = MainWindow()
 
     assert window.show_log_action.isChecked()
+    assert not window.clear_log_before_send_action.isChecked()
     assert window.show_code_action.isChecked()
     assert not window.log_output.isHidden()
     assert not window.submitted_code.isHidden()
@@ -52,6 +53,7 @@ def test_log_and_code_panes_are_visible_by_default() -> None:
     assert not window.windowFlags() & topmost_flag
 
     window.show_log_action.setChecked(False)
+    window.clear_log_before_send_action.setChecked(True)
     assert window.log_output.isHidden()
     window.show_log_action.setChecked(True)
     assert not window.log_output.isHidden()
@@ -75,6 +77,7 @@ def test_menu_settings_are_saved_and_restored() -> None:
     window.auto_disconnect_action.setChecked(True)
     window.auto_close_action.setChecked(True)
     window.show_log_action.setChecked(False)
+    window.clear_log_before_send_action.setChecked(True)
     window.show_code_action.setChecked(False)
     window.append_code_action.setChecked(False)
     window.always_on_top_action.setChecked(True)
@@ -86,6 +89,7 @@ def test_menu_settings_are_saved_and_restored() -> None:
     assert restored.auto_disconnect_action.isChecked()
     assert restored.auto_close_action.isChecked()
     assert not restored.show_log_action.isChecked()
+    assert restored.clear_log_before_send_action.isChecked()
     assert not restored.show_code_action.isChecked()
     assert not restored.append_code_action.isChecked()
     assert restored.always_on_top_action.isChecked()
@@ -108,8 +112,10 @@ def test_menu_setting_is_saved_when_action_is_triggered() -> None:
 
     window = MainWindow()
     window.auto_disconnect_action.trigger()
+    window.clear_log_before_send_action.trigger()
 
     assert settings.value(gui_window._MENU_SETTINGS["auto_disconnect"], type=bool)
+    assert settings.value(gui_window._MENU_SETTINGS["clear_log_before_send"], type=bool)
 
     window.close()
     settings.clear()
@@ -167,9 +173,6 @@ def test_connect_persists_active_port_and_token(monkeypatch: pytest.MonkeyPatch)
     assert window.status_value.text() == "Connected"
     window.close()
     app.processEvents()
-
-
-
 
 
 def test_copy_token_button_copies_current_token() -> None:
@@ -255,6 +258,27 @@ def test_submitted_code_can_append_replace_and_clear(capsys) -> None:
 
     window.submitted_code.clear()
     assert not window.submitted_code.toPlainText()
+
+    window.close()
+    app.processEvents()
+
+
+def test_log_can_be_cleared_before_a_new_send() -> None:
+    """Verify received code clears previous logs only when the preference is enabled.
+
+    Returns:
+        None: Asserts disabled mode preserves logs and enabled mode clears them.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    window = MainWindow()
+    window.log_output.setPlainText("previous result")
+
+    window._clear_log_before_send("print('new')")
+    assert window.log_output.toPlainText() == "previous result"
+
+    window.clear_log_before_send_action.setChecked(True)
+    window._clear_log_before_send("print('new')")
+    assert not window.log_output.toPlainText()
 
     window.close()
     app.processEvents()

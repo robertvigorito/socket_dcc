@@ -20,6 +20,7 @@ _MENU_SETTINGS = {
     "auto_disconnect": "menu/auto_disconnect",
     "auto_close": "menu/auto_close",
     "show_log": "menu/show_log",
+    "clear_log_before_send": "menu/clear_log_before_send",
     "show_code": "menu/show_code",
     "append_code": "menu/append_code",
     "always_on_top": "menu/always_on_top",
@@ -103,6 +104,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
 
         cast(Any, self.status_requested).connect(self._set_status)
         cast(Any, self.log_requested).connect(self._append_log)
+        cast(Any, self.code_requested).connect(self._clear_log_before_send)
         cast(Any, self.code_requested).connect(self._display_submitted_code)
         cast(Any, self.code_requested).connect(self._record_socket_activity)
         self.server = SocketExecutionServer(
@@ -156,6 +158,8 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.show_log_action.setCheckable(True)
         self.show_log_action.setChecked(True)
         self.show_log_action.toggled.connect(self._toggle_log)
+        self.clear_log_before_send_action = log_menu.addAction("Clear Log Before New Send")
+        self.clear_log_before_send_action.setCheckable(True)
         log_menu.addAction("Clear Log", self.log_output.clear)
 
         code_menu = self.menuBar().addMenu("Code")
@@ -174,6 +178,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             self.auto_disconnect_action,
             self.auto_close_action,
             self.show_log_action,
+            self.clear_log_before_send_action,
             self.show_code_action,
             self.append_code_action,
         ):
@@ -222,6 +227,9 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.auto_disconnect_action.setChecked(settings.value(_MENU_SETTINGS["auto_disconnect"], False, type=bool))
         self.auto_close_action.setChecked(settings.value(_MENU_SETTINGS["auto_close"], False, type=bool))
         self.show_log_action.setChecked(settings.value(_MENU_SETTINGS["show_log"], True, type=bool))
+        self.clear_log_before_send_action.setChecked(
+            settings.value(_MENU_SETTINGS["clear_log_before_send"], False, type=bool)
+        )
         self.show_code_action.setChecked(settings.value(_MENU_SETTINGS["show_code"], True, type=bool))
         self.append_code_action.setChecked(settings.value(_MENU_SETTINGS["append_code"], True, type=bool))
         self.always_on_top_action.setChecked(settings.value(_MENU_SETTINGS["always_on_top"], False, type=bool))
@@ -237,6 +245,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         settings.setValue(_MENU_SETTINGS["auto_disconnect"], self.auto_disconnect_action.isChecked())
         settings.setValue(_MENU_SETTINGS["auto_close"], self.auto_close_action.isChecked())
         settings.setValue(_MENU_SETTINGS["show_log"], self.show_log_action.isChecked())
+        settings.setValue(_MENU_SETTINGS["clear_log_before_send"], self.clear_log_before_send_action.isChecked())
         settings.setValue(_MENU_SETTINGS["show_code"], self.show_code_action.isChecked())
         settings.setValue(_MENU_SETTINGS["append_code"], self.append_code_action.isChecked())
         settings.setValue(_MENU_SETTINGS["always_on_top"], self.always_on_top_action.isChecked())
@@ -266,6 +275,19 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             None: Appends the message to the log and terminal.
         """
         append_log(self.log_output, message)
+
+    @Qt.QtCore.Slot(str)
+    def _clear_log_before_send(self, _code: str) -> None:
+        """Clear the previous log when the corresponding preference is enabled.
+
+        Args:
+            _code: Submitted code or path received by the socket server.
+
+        Returns:
+            None: Clears prior log entries when the preference is enabled.
+        """
+        if self.clear_log_before_send_action.isChecked():
+            self.log_output.clear()
 
     @Qt.QtCore.Slot(str)
     def _display_submitted_code(self, code: str) -> None:
