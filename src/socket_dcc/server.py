@@ -8,6 +8,7 @@ import os
 import platform
 import runpy
 import socketserver
+import sys
 import threading
 import traceback
 from collections.abc import Callable, Iterator
@@ -32,6 +33,9 @@ class ExecutionResponse:
     ok: bool
     output: str
     raised: bool = False
+
+
+ExecutionDispatcher = Callable[[Callable[[], ExecutionResponse]], ExecutionResponse]
 
 
 def _normalize_traceback_paths(output: str) -> str:
@@ -146,6 +150,9 @@ class SocketExecutionServer:
         status_callback: Callable[[str], None] | None = None,
         code_received_callback: Callable[[str], None] | None = None,
         auth_token: str | None = None,
+        execution_dispatcher: ExecutionDispatcher | None = None,
+        script_editor_callback: Callable[[str], None] | None = None,
+        shutdown_callback: Callable[[], None] | None = None,
     ) -> None:
         """Initialize the socket execution server.
 
@@ -154,6 +161,9 @@ class SocketExecutionServer:
             status_callback: Optional callback for server status updates.
             code_received_callback: Optional callback when code is received.
             auth_token: Optional authentication token; generates one if not provided.
+            execution_dispatcher: Optional function that runs execution on the host application's thread.
+            script_editor_callback: Optional callback for mirroring execution output to the host script editor.
+            shutdown_callback: Optional callback enabled for authenticated remote shutdown requests.
         """
         self._server: socketserver.ThreadingTCPServer | None = None
         self._thread: threading.Thread | None = None
@@ -166,6 +176,9 @@ class SocketExecutionServer:
         self._log_callback = log_callback
         self._status_callback = status_callback
         self._code_received_callback = code_received_callback
+        self._execution_dispatcher = execution_dispatcher or (lambda task: task())
+        self._script_editor_callback = script_editor_callback
+        self._shutdown_callback = shutdown_callback
 
     @property
     def is_running(self) -> bool:
@@ -216,11 +229,32 @@ class SocketExecutionServer:
                     return
                 try:
                     request = json.loads(raw.decode("utf-8"))
-                    code = str(request["code"])
                     token = str(request["token"])
+                    action = request.get("action", "execute")
+                except (KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    self._send(ExecutionResponse(False, f"Invalid request: {exc}"))
+                    return
+
+                if not isinstance(action, str) or action not in {"execute", "shutdown"}:
+                    self._send(ExecutionResponse(False, f"Invalid action: {action}"))
+                    return
+
+                if action == "shutdown":
+                    if token != server.auth_token:
+                        self._send(ExecutionResponse(False, "Authentication failed"))
+                        return
+                    if server._shutdown_callback is None:
+                        self._send(ExecutionResponse(False, "Remote shutdown is not enabled."))
+                        return
+                    self._send(ExecutionResponse(True, "Shutdown requested."))
+                    server._shutdown_callback()
+                    return
+
+                try:
+                    code = str(request["code"])
                     mode = request.get("mode", "code")
                     wait = request.get("wait", True)
-                except (KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                except (KeyError, TypeError) as exc:
                     self._send(ExecutionResponse(False, f"Invalid request: {exc}"))
                     return
 
@@ -277,6 +311,25 @@ class SocketExecutionServer:
         Returns:
             ExecutionResponse: Execution status and output/error message.
         """
+
+        def execute_on_host_thread() -> ExecutionResponse:
+            response = self._execute(code, run_path)
+            if self._script_editor_callback is not None:
+                self._script_editor_callback(response.output)
+            return response
+
+        return self._execution_dispatcher(execute_on_host_thread)
+
+    def _execute(self, code: str, run_path: bool = False) -> ExecutionResponse:
+        """Execute source or a file after dispatching to the host application's thread.
+
+        Args:
+            code: Python code to execute or path to a Python file.
+            run_path: Whether to treat the payload as a path without code detection.
+
+        Returns:
+            ExecutionResponse: Execution status and output/error message.
+        """
         with self._lock:
             stdout = io.StringIO()
             stderr = io.StringIO()
@@ -315,7 +368,7 @@ class SocketExecutionServer:
                         else:
                             result = eval(compiled, self._namespace, self._namespace)
                             if result is not None:
-                                print(repr(result))
+                                print(repr(result), file=sys.stdout)
             except Exception:
                 output = traceback.format_exc()
                 stderr.write(_normalize_traceback_paths(output))

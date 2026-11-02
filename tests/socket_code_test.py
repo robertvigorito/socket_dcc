@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 import socket_dcc.client as client
-from socket_dcc.server import SocketExecutionServer
+from socket_dcc.server import ExecutionResponse, SocketExecutionServer
 
 
 def test_send_code_to_socket_server(monkeypatch) -> None:
@@ -140,5 +140,64 @@ def test_send_code_returns_before_remote_execution_finishes(monkeypatch) -> None
         assert not execution_finished.is_set()
         assert execution_finished.wait(timeout=3)
         assert logged_output == ["finished"]
+    finally:
+        server.stop()
+
+
+def test_shutdown_request_stops_headless_server(monkeypatch) -> None:
+    """Verify an authenticated shutdown request invokes the configured callback.
+
+    Args:
+        monkeypatch: Pytest fixture used to configure local connection defaults.
+
+    Returns:
+        None: Asserts the server accepts the shutdown and invokes its callback.
+    """
+    token = "shutdown-test-token"
+    shutdown_requested = threading.Event()
+    server = SocketExecutionServer(auth_token=token, shutdown_callback=shutdown_requested.set)
+
+    with socket.socket() as port_socket:
+        port_socket.bind(("127.0.0.1", 0))
+        port = port_socket.getsockname()[1]
+
+    monkeypatch.setattr(client, "get_default_settings", lambda: (port, token))
+    monkeypatch.setattr(client, "get_default_host", lambda: "127.0.0.1")
+
+    try:
+        server.start("127.0.0.1", port)
+        response = client.shutdown_server()
+
+        assert response == ExecutionResponse(True, "Shutdown requested.")
+        assert shutdown_requested.wait(timeout=1)
+    finally:
+        server.stop()
+
+
+def test_shutdown_request_requires_callback(monkeypatch) -> None:
+    """Verify ordinary servers refuse remote shutdown when it is not enabled.
+
+    Args:
+        monkeypatch: Pytest fixture used to configure local connection defaults.
+
+    Returns:
+        None: Asserts shutdown is rejected and the server remains active.
+    """
+    token = "shutdown-disabled-test-token"
+    server = SocketExecutionServer(auth_token=token)
+
+    with socket.socket() as port_socket:
+        port_socket.bind(("127.0.0.1", 0))
+        port = port_socket.getsockname()[1]
+
+    monkeypatch.setattr(client, "get_default_settings", lambda: (port, token))
+    monkeypatch.setattr(client, "get_default_host", lambda: "127.0.0.1")
+
+    try:
+        server.start("127.0.0.1", port)
+        response = client.shutdown_server()
+
+        assert response == ExecutionResponse(False, "Remote shutdown is not enabled.")
+        assert server.is_running
     finally:
         server.stop()

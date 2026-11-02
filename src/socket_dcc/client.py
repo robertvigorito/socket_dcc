@@ -85,3 +85,42 @@ def send_code(
         str(data.get("output", "")),
         raised=bool(data.get("raised", False)),
     )
+
+
+def shutdown_server(
+    host: str | None = None,
+    port: int | None = None,
+    token: str | None = None,
+) -> ExecutionResponse:
+    """Request a clean server shutdown using the configured authentication token.
+
+    Args:
+        host: Server hostname or IP address.
+        port: Server port number.
+        token: Authentication token.
+
+    Returns:
+        ExecutionResponse: Server acceptance or rejection of the shutdown request.
+
+    Raises:
+        OSError: If a connection to the server cannot be made.
+    """
+    host, port, token = get_host_port_token(host, port, token)
+
+    with socket.create_connection((host, port), timeout=3) as sock:
+        sock.sendall(json.dumps({"action": "shutdown", "token": token}).encode("utf-8") + b"\n")
+        with sock.makefile("r", encoding="utf-8") as stream:
+            response = stream.readline()
+
+    if not response:
+        return ExecutionResponse(False, "No response from server.")
+    try:
+        data = json.loads(response)
+    except json.JSONDecodeError as exc:
+        return ExecutionResponse(False, f"Invalid server response: {exc}")
+
+    return ExecutionResponse(
+        bool(data.get("ok", False)),
+        str(data.get("output", "")),
+        raised=bool(data.get("raised", False)),
+    )

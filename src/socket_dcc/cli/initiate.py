@@ -2,9 +2,11 @@
 
 import typer
 
+from socket_dcc.cli.close import close_server
 from socket_dcc.cli.code import send_code_command
 from socket_dcc.cli.configure import configure
 from socket_dcc.cli.generate_token import generate_token
+from socket_dcc.cli.headless import headless
 from socket_dcc.cli.info import info
 from socket_dcc.cli.path import run_path
 from socket_dcc.cli.show import show
@@ -16,6 +18,8 @@ load_default_environment()
 
 app = typer.Typer(no_args_is_help=True)
 app.command(name="show")(show)
+app.command(name="headless")(headless)
+app.command(name="close")(close_server)
 app.command(name="test")(test)
 app.command(name="test-raise")(test_raise)
 app.command(name="code")(send_code_command)

@@ -22,6 +22,27 @@ The command-line app also provides `code` to send inline Python or the contents 
 `path` to ask the server process to execute a Python file accessible to it. Use `socket-dcc --help` or
 `socket-dcc <command> --help` for command options.
 
+For testing without opening Nuke's GUI, start the server with `socket-dcc headless` or the standalone
+`socket-dcc-headless` command from an environment using Nuke's Python interpreter. Its default bind
+address follows the shared host setting and matches the GUI server; use `--host 127.0.0.1` to restrict
+it to loopback. If the resolved default address is unavailable, the server retries on loopback; use
+`--host` with a valid local interface address when network clients need access. It accepts the same
+`code` and `path` requests as the GUI server. Press Ctrl+C to stop it.
+You can also start the headless server from a Nuke terminal interpreter or test harness with
+`socket_dcc.headless.run_headless_server()`; pass a `threading.Event` as `stop_event` when embedding it
+so the server can be stopped programmatically.
+
+```bash
+socket-dcc-headless --host 127.0.0.1 --port 54322 --token your-token
+socket-dcc code 'print("Hello from headless Nuke")' --host 127.0.0.1 --port 54322 --token your-token --wait
+```
+
+The headless runner creates no Qt application. It services execution requests on the calling thread,
+which lets code sent to it use Nuke APIs from Nuke's terminal-mode interpreter.
+Stop a headless server remotely with `socket-dcc close` (or `socket-dcc-close`), using the same
+host, port, and token as the server. Remote shutdown is enabled only on the headless runner; GUI servers
+continue to be stopped from their panel.
+
 Code and path requests return as soon as the server accepts them; the server continues executing and
 displays the eventual output or errors in its GUI log. Add `--wait` to either command when the caller
 needs to wait for completion and receive the execution output.

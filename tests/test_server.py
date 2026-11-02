@@ -1,6 +1,7 @@
 """Tests for socket execution behavior."""
 
 from pathlib import Path
+from unittest.mock import Mock
 
 from socket_dcc.server import ExecutionResponse, SocketExecutionServer, _normalize_traceback_paths
 
@@ -34,6 +35,31 @@ def test_execute_python_file(tmp_path: Path) -> None:
     response = server.execute(str(script))
 
     assert response == ExecutionResponse(True, "file executed")
+
+
+def test_runpy_execution_is_dispatched_and_output_is_mirrored(tmp_path: Path) -> None:
+    """Verify path-mode runpy execution uses the host dispatcher and mirrors output.
+
+    Args:
+        tmp_path: Pytest fixture used to create an executable Python file.
+
+    Returns:
+        None: Asserts host dispatch, execution output, and Script Editor mirroring.
+    """
+    script = tmp_path / "nuke_script.py"
+    script.write_text('print("Nuke output")\n', encoding="utf-8")
+    dispatcher = Mock(side_effect=lambda task: task())
+    script_editor_callback = Mock()
+    server = SocketExecutionServer(
+        execution_dispatcher=dispatcher,
+        script_editor_callback=script_editor_callback,
+    )
+
+    response = server.execute(str(script), run_path=True)
+
+    assert response == ExecutionResponse(True, "Nuke output")
+    dispatcher.assert_called_once()
+    script_editor_callback.assert_called_once_with("Nuke output")
 
 
 def test_execution_error_omits_failed_expression_compile_context() -> None:

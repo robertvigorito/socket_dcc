@@ -12,4 +12,8 @@ package_menu = (
 )
 
 
-nukescripts.panels.registerWidgetAsPanel("socket_dcc.interface.MainWindow", "Socket DCC Panel", "com.wgid.socket_dcc")
+nukescripts.panels.registerWidgetAsPanel(
+    "socket_dcc.interface.NukeMainWindow",
+    "Socket DCC Panel",
+    "com.wgid.socket_dcc",
+)

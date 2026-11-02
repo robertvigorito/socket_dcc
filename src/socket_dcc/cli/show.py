@@ -2,7 +2,22 @@
 
 import typer
 
-from socket_dcc.interface import launch
+
+def launch(host: str | None = None, port: int | None = None, token: str | None = None, connect: bool = False) -> int:
+    """Load and launch the GUI only when the show command is selected.
+
+    Args:
+        host: Optional server host override.
+        port: Optional server port override.
+        token: Optional authentication token override.
+        connect: Whether to connect when the GUI opens.
+
+    Returns:
+        int: The GUI event-loop exit status.
+    """
+    from socket_dcc.interface import launch as launch_gui
+
+    return launch_gui(host=host, port=port, token=token, connect=connect)
 
 
 def show(

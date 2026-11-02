@@ -1,6 +1,7 @@
 """Main window for the socket-dcc connection panel."""
 
 import errno
+from collections.abc import Callable
 from typing import Any, cast
 
 import Qt
@@ -10,7 +11,7 @@ from socket_dcc.core.gui.layout import create_central_widget
 from socket_dcc.core.gui.signals import signal_received
 from socket_dcc.core.gui.utils import append_log
 from socket_dcc.defaults import get_default_host, get_default_settings, save_default_settings
-from socket_dcc.server import SocketExecutionServer
+from socket_dcc.server import ExecutionDispatcher, SocketExecutionServer
 
 console = Console()
 
@@ -32,15 +33,26 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
     log_requested = Qt.QtCore.Signal(str)
     code_requested = Qt.QtCore.Signal(str)
 
-    def __init__(self, host: str | None = None, port: int | None = None, token: str | None = None) -> None:
+    def __init__(
+        self,
+        host: str | None = None,
+        port: int | None = None,
+        token: str | None = None,
+        execution_dispatcher: ExecutionDispatcher | None = None,
+        script_editor_callback: Callable[[str], None] | None = None,
+        parent: Any | None = None,
+    ) -> None:
         """Initialize the connection panel, menus, and socket server.
 
         Args:
             host: Optional server host override.
             port: Optional server port override.
             token: Optional authentication token override.
+            execution_dispatcher: Optional host-thread execution dispatcher.
+            script_editor_callback: Optional callback for mirroring output to the host Script Editor.
+            parent: Optional Qt parent widget, used by host panel registries.
         """
-        super().__init__()
+        super().__init__(parent)
         self.setStyleSheet(
             "QMainWindow, QWidget { background-color: #333333; color: #dddddd; }"
             "QMenuBar { background-color: #333333; color: #eeeeee; }"
@@ -97,6 +109,8 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             log_callback=cast(Any, self.log_requested).emit,
             status_callback=cast(Any, self.status_requested).emit,
             code_received_callback=cast(Any, self.code_requested).emit,
+            execution_dispatcher=execution_dispatcher,
+            script_editor_callback=script_editor_callback,
         )
         self.token_input.setText(token or default_token or self.server.auth_token)
         self._idle_timeout_seconds = 600

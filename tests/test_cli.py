@@ -307,6 +307,51 @@ def test_cli_lists_commands_without_implicitly_opening_gui() -> None:
     assert "path" in result.output
 
 
+def test_headless_command_passes_options_to_server(monkeypatch) -> None:
+    """Verify the Typer headless command forwards its connection options.
+
+    Args:
+        monkeypatch: Pytest fixture used to replace the long-running server function.
+
+    Returns:
+        None: Asserts host, port, and token are passed through to the headless runner.
+    """
+    headless_module = import_module("socket_dcc.cli.headless")
+    run_headless_server = Mock()
+    monkeypatch.setattr(headless_module, "run_headless_server", run_headless_server)
+
+    result = CliRunner().invoke(
+        cli.app,
+        ["headless", "--host", "127.0.0.1", "--port", "45678", "--token", "headless-token"],
+    )
+
+    assert result.exit_code == 0, result.output
+    run_headless_server.assert_called_once_with(host="127.0.0.1", port=45678, token="headless-token")
+
+
+def test_close_command_requests_server_shutdown(monkeypatch) -> None:
+    """Verify close forwards connection details and reports accepted shutdown.
+
+    Args:
+        monkeypatch: Pytest fixture used to replace configuration and shutdown calls.
+
+    Returns:
+        None: Asserts the shutdown request and success message.
+    """
+    close_module = import_module("socket_dcc.cli.close")
+    shutdown_server = Mock(return_value=ExecutionResponse(True, "Shutdown requested."))
+    monkeypatch.setattr(close_module, "shutdown_server", shutdown_server)
+
+    result = CliRunner().invoke(
+        cli.app,
+        ["close", "--host", "127.0.0.1", "--port", "45678", "--token", "headless-token"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Shutdown requested." in result.output
+    shutdown_server.assert_called_once_with(host="127.0.0.1", port=45678, token="headless-token")
+
+
 def test_configure_saves_values_passed_as_options(monkeypatch) -> None:
     """Verify configure persists host, port, and token supplied through options.
 
