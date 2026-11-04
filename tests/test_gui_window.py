@@ -232,6 +232,77 @@ def test_idle_timeout_dialog_is_borderless() -> None:
     app.processEvents()
 
 
+def test_idle_countdown_displays_remaining_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify the Settings menu shows the remaining auto-disconnect time.
+
+    Args:
+        monkeypatch: Pytest fixture used to provide a deterministic timer value.
+
+    Returns:
+        None: Asserts the countdown label is formatted as minutes and seconds.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    window = MainWindow()
+    window._idle_timeout_seconds = 600
+    window._start_idle_timer()
+    monkeypatch.setattr(window.idle_timer, "remainingTime", lambda: 65_001)
+
+    window._update_idle_countdown()
+
+    assert window.idle_countdown_action in window.menuBar().actions()
+    assert window.menuBar().actions()[-1] == window.idle_countdown_action
+    assert window.idle_countdown_action.isVisible()
+    assert window.idle_countdown_action.text() == "Disconnect in: 01:06"
+    window.close()
+    app.processEvents()
+
+
+def test_idle_countdown_is_inactive_when_auto_disconnect_is_stopped() -> None:
+    """Verify stopping idle detection clears the visible countdown.
+
+    Returns:
+        None: Asserts both timers stop and the countdown displays its inactive state.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    window = MainWindow()
+    window._start_idle_timer()
+
+    assert window.idle_countdown_action.text() == "Disconnect in: 10:00"
+    assert window.idle_timer.isActive()
+    assert window.idle_countdown_timer.isActive()
+
+    window._stop_idle_timer()
+
+    assert window.idle_countdown_action.text() == "Disconnect in: inactive"
+    assert not window.idle_countdown_action.isVisible()
+    assert not window.idle_timer.isActive()
+    assert not window.idle_countdown_timer.isActive()
+    window.close()
+    app.processEvents()
+
+
+def test_submitted_command_refreshes_idle_countdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify submitted code resets the idle countdown when auto-disconnect is enabled.
+
+    Args:
+        monkeypatch: Pytest fixture used to observe the countdown restart.
+
+    Returns:
+        None: Asserts a received command restarts the idle countdown.
+    """
+    app = Qt.QtWidgets.QApplication.instance() or Qt.QtWidgets.QApplication([])
+    window = MainWindow()
+    restart_timer = Mock()
+    monkeypatch.setattr(window, "_start_idle_timer", restart_timer)
+    window.auto_disconnect_action.setChecked(True)
+
+    window.code_requested.emit("print('submitted')")
+
+    restart_timer.assert_called_once_with()
+    window.close()
+    app.processEvents()
+
+
 def test_submitted_code_can_append_replace_and_clear(capsys) -> None:
     """Verify submitted code display supports append, replace, and clear.
 

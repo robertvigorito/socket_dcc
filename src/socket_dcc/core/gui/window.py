@@ -119,6 +119,9 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.idle_timer = Qt.QtCore.QTimer(self)
         self.idle_timer.setSingleShot(True)
         cast(Any, self.idle_timer.timeout).connect(self._disconnect_for_idle)
+        self.idle_countdown_timer = Qt.QtCore.QTimer(self)
+        self.idle_countdown_timer.setInterval(1000)
+        cast(Any, self.idle_countdown_timer.timeout).connect(self._update_idle_countdown)
 
         self.connect_button.clicked.connect(self._toggle_connection)
         self.copy_host_button.clicked.connect(self._copy_host)
@@ -186,6 +189,9 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
 
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction("About socket-dcc", self._show_about)
+
+        self.idle_countdown_action = self.menuBar().addAction("Disconnect in: inactive")
+        self.idle_countdown_action.setVisible(False)
 
     def _add_clear_context_menu(self, text_widget: Any) -> None:
         """Extend a text editor's standard right-click menu with a Clear action.
@@ -413,7 +419,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             self._idle_timeout_seconds = minutes * 60
             self._save_menu_settings()
             if self.server.is_running and self.auto_disconnect_action.isChecked():
-                self.idle_timer.start(self._idle_timeout_seconds * 1000)
+                self._start_idle_timer()
             self._append_log(f"Idle timeout set to {minutes} minute(s).")
 
     def _create_idle_timeout_dialog(self) -> Qt.QtWidgets.QInputDialog:
@@ -441,9 +447,46 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             None: Starts or stops the idle timer as appropriate.
         """
         if enabled and self.server.is_running:
-            self.idle_timer.start(self._idle_timeout_seconds * 1000)
+            self._start_idle_timer()
         else:
-            self.idle_timer.stop()
+            self._stop_idle_timer()
+
+    def _start_idle_timer(self) -> None:
+        """Start the disconnect timer and its visible countdown.
+
+        Returns:
+            None: Starts both timers and immediately updates the menu countdown.
+        """
+        self.idle_timer.start(self._idle_timeout_seconds * 1000)
+        self.idle_countdown_action.setVisible(True)
+        self._update_idle_countdown()
+        self.idle_countdown_timer.start()
+
+    def _stop_idle_timer(self) -> None:
+        """Stop idle timers and restore the inactive countdown label.
+
+        Returns:
+            None: Stops countdown updates and resets the Settings menu item.
+        """
+        self.idle_timer.stop()
+        self.idle_countdown_timer.stop()
+        self.idle_countdown_action.setVisible(False)
+
+    @Qt.QtCore.Slot()
+    def _update_idle_countdown(self) -> None:
+        """Update the menu countdown from the remaining idle timer duration.
+
+        Returns:
+            None: Displays the remaining timeout as minutes and seconds.
+        """
+        remaining_ms = self.idle_timer.remainingTime()
+        if remaining_ms < 0:
+            self._stop_idle_timer()
+            return
+
+        remaining_seconds = min(self._idle_timeout_seconds, max(0, (remaining_ms + 999) // 1000))
+        minutes, seconds = divmod(remaining_seconds, 60)
+        self.idle_countdown_action.setText(f"{minutes:02d}:{seconds:02d}")
 
     @Qt.QtCore.Slot(str)
     def _record_socket_activity(self, _code: str) -> None:
@@ -456,7 +499,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
             None: Restarts auto-disconnect timing when enabled.
         """
         if self.auto_disconnect_action.isChecked():
-            self.idle_timer.start(self._idle_timeout_seconds * 1000)
+            self._start_idle_timer()
 
     def _disconnect_for_idle(self) -> None:
         """Disconnect the server after the configured idle period.
@@ -503,7 +546,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         self.port_input.setEnabled(False)
         self.all_interfaces_button.setEnabled(False)
         if self.auto_disconnect_action.isChecked():
-            self.idle_timer.start(self._idle_timeout_seconds * 1000)
+            self._start_idle_timer()
         self._append_log(f"[green]Listening on {self._ip_address}:{self.port_input.value()}[/green]")
         console.print(f"[green]Listening on {self._ip_address}:{self.port_input.value()}[/green]")
 
@@ -516,7 +559,7 @@ class MainWindow(Qt.QtWidgets.QMainWindow):
         Returns:
             None: Resets connection controls and honors the close-after-disconnect option.
         """
-        self.idle_timer.stop()
+        self._stop_idle_timer()
         self.server.stop()
         self._append_log(message)
         self._set_status("Idle")
